@@ -1,8 +1,8 @@
-use crate::model::state::CleanupLoop;
-use crate::model::state;
-
 use std::sync::Arc;
 use std::env;
+
+use model::state::CleanupLoop;
+use model::state;
 
 use tokio::sync::RwLock;
 use actix_web::web::Data;

@@ -22,7 +22,7 @@ pub async extern "C" fn load() {
   let data = Data::init().await;
   let client_id = data.id;
 
-  let data = Arc::new(RwLock::new(data));
+  let _data = Arc::new(RwLock::new(data));
 
   loop {
     let mut stream = loop {
@@ -42,9 +42,10 @@ pub async extern "C" fn load() {
       };
 
       match payload {
-        stream::Payload::Ready => todo!(),
-        stream::Payload::DownloadMedia(id) => todo!(),
-        stream::Payload::PlayMedia(id) => todo!(),
+        stream::Payload::Ready => println!("Ready"),
+        stream::Payload::Ping => println!("Ping"),
+        stream::Payload::DownloadMedia(_id) => todo!(),
+        stream::Payload::PlayMedia(_id) => todo!(),
         stream::Payload::StopMedia => todo!(),
         stream::Payload::SelfDestruct => todo!(),
       }
@@ -61,6 +62,15 @@ mod tests {
 
   #[tokio::test]
   async fn test_init() {
-    println!("Address: {}", ADDR);
+    let id = stream::create_client().await.unwrap();
+    println!("Client id: {}", id);
+
+    let mut stream = create_stream(id).await.unwrap();
+    let payload = stream.next().await;
+
+    println!("Payload: {:?}", payload);
+    sleep(Duration::from_secs(20)).await;
+
+    println!("Done");
   }
 }

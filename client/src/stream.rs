@@ -15,6 +15,7 @@ use whoami::fallible;
 #[serde(tag = "type", content = "payload")]
 pub enum Payload {
   Ready,
+  Ping,
   DownloadMedia(u16),
   PlayMedia(u16),
   StopMedia,
@@ -78,8 +79,8 @@ impl<R: StreamExt<Item = reqwest::Result<Bytes>> + Unpin> Stream for PayloadStre
 
 pub async fn create_stream(client_id: u16) -> Result<PayloadStream<impl Stream<Item = reqwest::Result<Bytes>>>> {
   let response = Client::new()
-    .post(format!("{}/api/stream", ADDR))
-    .header("X-Client-ID", client_id)
+    .get(format!("{}/api/stream", ADDR))
+    .header("X-Client-Id", client_id)
     .send()
     .await?;
 

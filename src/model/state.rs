@@ -1,4 +1,4 @@
-use super::stream::{DashboardPayload, Payload};
+use super::stream::{DashboardPayload, HintedSender, Payload};
 use crate::AppState;
 
 use std::collections::HashSet;
@@ -96,21 +96,35 @@ impl CleanupLoop for AppState {
     let state = self.clone();
     tokio::spawn(async move {
       let mut interval = time::interval(CLEANUP_INTERVAL);
-      
+      log::info!("Cleanup loop started");
+
       loop {
         interval.tick().await;
       
         let mut state = state.write().await;
         let mut clients = HashSet::new();
 
+        let len = state.streams.len();
+
+        let payload = Payload::Ping.into_bytes();
+        let futures = state.streams.iter().map(|(tx, _)| {
+          tx.send_hinted(payload.clone())
+        });
+        
+        let mut futures = future::join_all(futures).await.into_iter();
         state.streams.retain(|(tx, id)| {
-          let is_closed = tx.is_closed();
+          let is_closed = tx.is_closed() || futures.next().unwrap().is_err();
           if is_closed {
             clients.insert(*id);
           }
 
           !is_closed
         });
+
+        let diff = len - state.streams.len();
+        if diff > 0 {
+          log::debug!("{} clients disconnected", diff);
+        }
 
         clients.retain(|id| {
           if state.streams.iter().any(|(_, client_id)| client_id == id) {
@@ -128,6 +142,7 @@ impl CleanupLoop for AppState {
 
         let payload = DashboardPayload::ClientDisconnected(&clients);
         state.broadcast_to_dashboard(payload).await;
+        state.write();
       }
     });
   }

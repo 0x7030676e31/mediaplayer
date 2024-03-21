@@ -18,6 +18,7 @@ use serde::Serialize;
 #[serde(tag = "type", content = "payload")]
 pub enum Payload {
   Ready,
+  Ping,
   DownloadMedia(u16),
   PlayMedia(u16),
   StopMedia,
