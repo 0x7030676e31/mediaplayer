@@ -9,6 +9,8 @@ use futures::ready;
 use futures::stream::Stream;
 use actix_web::{Responder, HttpResponse, web};
 use actix_web::body::{BoxBody, MessageBody, BodySize};
+use tokio::sync::mpsc::error::SendError;
+use tokio::sync::mpsc;
 use tokio_stream::wrappers;
 use serde::Serialize;
 
@@ -103,5 +105,17 @@ impl MessageBody for InfallibleStream<wrappers::ReceiverStream<web::Bytes>> {
     }
 
     Poll::Pending
+  }
+}
+
+pub trait HintedSender<T> {
+  async fn send_hinted(&self, value: T) -> Result<(), SendError<T>>;
+}
+
+impl HintedSender<web::Bytes> for mpsc::Sender<web::Bytes> {
+  async fn send_hinted(&self, value: web::Bytes) -> Result<(), SendError<web::Bytes>> {
+    let mut combined_value = value.to_vec();
+    combined_value.extend_from_slice(b"\x00");
+    self.send(web::Bytes::from(combined_value)).await
   }
 }

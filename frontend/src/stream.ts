@@ -12,8 +12,14 @@ type Payload
 
 function handle(payload: string) {
   const data = JSON.parse(payload) as Payload;
+  switch (data.type) {
+    case "Ready":
+      callback?.();
+      break;
+  }
 }
 
+let callback: () => void;
 export function useStream() {
   const [ ready, setReady ] = createSignal(false);
 
@@ -25,5 +31,6 @@ export function useStream() {
     setReady(false);
   };
 
+  callback = () => setReady(true);
   return { connected: ready };
 }

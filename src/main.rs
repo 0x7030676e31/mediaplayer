@@ -9,6 +9,7 @@ use actix_web::web::Data;
 
 mod model;
 mod routes;
+mod reader;
 
 const INNER_PORT: u16 = 7777;
 pub type AppState = Arc<RwLock<state::State>>;

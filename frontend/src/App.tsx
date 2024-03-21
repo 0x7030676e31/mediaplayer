@@ -1,5 +1,34 @@
-export default function App() {
-  let input: HTMLInputElement | undefined;
+import { RouteSectionProps } from "@solidjs/router";
+import { Accessor } from "solid-js";
+import { useStream } from "./stream";
+import Navbar from './components/navbar';
+
+export default function App(props: RouteSectionProps) {
+  const { connected } = useStream();
+
+  return (
+    <div class="app">
+      <Navbar />
+      {props.children}
+      <Overlay connected={connected} />
+    </div>
+  );
+}
+
+function Overlay({ connected }: { connected: Accessor<boolean> }) {
+  return (
+    <div class="overlay" classList={{ "connected": connected() }}>
+      <svg class="spinner" viewBox="0 0 50 50">
+        <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
+      </svg>
+    </div>
+  );
+}
+
+
+  // const { connected } = useStream();
+
+  // let input: HTMLInputElement | undefined;
 
   // Home
   // Library
@@ -25,13 +54,3 @@ export default function App() {
   //     console.log("Unhlandled message:", e.data);
   //   };
   // }
-
-  return (
-    <>
-      <h1>Upload a file</h1>
-      {/* <button onClick={onClick}>Choose file</button>
-      <input type="file" style={{ display: "none" }} ref={input} onChange={upload} accept="audio/*" />
-      <button onClick={connect}>Connect to server</button> */}
-    </>
-  );
-}

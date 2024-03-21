@@ -1,4 +1,4 @@
-use crate::model::stream::{DashboardPayload, InfallibleStream, Payload};
+use crate::model::stream::{DashboardPayload, InfallibleStream, Payload, HintedSender};
 use crate::model::state::Activity;
 use crate::AppState;
 
@@ -36,7 +36,7 @@ pub async fn stream(req: HttpRequest, state: web::Data<AppState>) -> Result<impl
   let payload = Payload::Ready.into_bytes();
   
   tokio::spawn(async move {
-    if let Err(err) = tx.send(payload).await {
+    if let Err(err) = tx.send_hinted(payload).await {
       log::error!("Failed to send ready payload: {}", err);
     }
   });
@@ -50,6 +50,8 @@ pub async fn stream(req: HttpRequest, state: web::Data<AppState>) -> Result<impl
 #[actix_web::get("/dashboard/stream")]
 pub async fn dashboard_stream(state: web::Data<AppState>) -> impl Responder {
   let (tx, rx) = mpsc::channel(32);
+
+  tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
   let mut state = state.write().await;
   state.dashboard_streams.push(tx.clone());

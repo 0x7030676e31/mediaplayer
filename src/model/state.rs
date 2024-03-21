@@ -66,7 +66,7 @@ impl Client {
   }
 }
 
-fn path() -> &'static str {
+pub fn path() -> &'static str {
   static PATH: OnceLock<String> = OnceLock::new();
   PATH.get_or_init(|| {
     let is_production = env::var("PRODUCTION").map_or(false, |prod| prod == "true");
