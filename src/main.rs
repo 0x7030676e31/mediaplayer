@@ -36,5 +36,6 @@ async fn main() -> std::io::Result<()> {
       .service(routes::routes())
   });
 
-  server.bind(("0.0.0.0", INNER_PORT))?.run().await
+  let ip = env::var("IP").unwrap_or(String::from("0.0.0.0"));
+  server.bind((ip, INNER_PORT))?.run().await
 }

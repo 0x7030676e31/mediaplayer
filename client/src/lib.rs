@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use stream::create_stream;
+use media::DataApi;
 use state::Data;
 
 use tokio::time::{sleep, Duration};
@@ -9,20 +10,17 @@ use tokio::sync::RwLock;
 
 mod state;
 mod stream;
+mod media;
 
-pub const ADDR: &str = if cfg!(debug_assertions) {
-  "http://localhost:7777"
-} else {
-  "http://70.34.254.149:7777"
-};
+pub const ADDR: &str = if cfg!(debug_assertions) { "http://localhost:7777" } else { include_str!("../addr.txt") };
 
 #[no_mangle]
 #[tokio::main]
 pub async extern "C" fn load() {
   let data = Data::init().await;
+  
   let client_id = data.id;
-
-  let _data = Arc::new(RwLock::new(data));
+  let data = Arc::new(RwLock::new(data));
 
   loop {
     let mut stream = loop {
@@ -44,7 +42,7 @@ pub async extern "C" fn load() {
       match payload {
         stream::Payload::Ready => println!("Ready"),
         stream::Payload::Ping => println!("Ping"),
-        stream::Payload::DownloadMedia(_id) => todo!(),
+        stream::Payload::DownloadMedia(id) => data.download(id, client_id),
         stream::Payload::PlayMedia(_id) => todo!(),
         stream::Payload::StopMedia => todo!(),
         stream::Payload::SelfDestruct => todo!(),

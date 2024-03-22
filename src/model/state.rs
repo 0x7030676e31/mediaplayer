@@ -13,7 +13,6 @@ use tokio::sync::mpsc;
 use actix_web_lab::sse;
 use tokio::time;
 
-
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(15);
 
 #[derive(Serialize, Deserialize)]
@@ -140,9 +139,11 @@ impl CleanupLoop for AppState {
           }
         });
 
-        let payload = DashboardPayload::ClientDisconnected(&clients);
-        state.broadcast_to_dashboard(payload).await;
-        state.write();
+        if !clients.is_empty() {
+          let payload = DashboardPayload::ClientDisconnected(&clients);
+          state.broadcast_to_dashboard(payload).await;
+          state.write();
+        }
       }
     });
   }
