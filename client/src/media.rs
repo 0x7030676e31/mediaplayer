@@ -11,7 +11,7 @@ use reqwest::Client;
 
 async fn download(id: u16, client_id: u16, state: Arc<RwLock<Data>>) -> Result<(), ()> {
   let mut state_ = state.write().await;
-  if state_.being_downloaded.contains(&id) {
+  if state_.being_downloaded.contains(&id) || state_.library.contains(&id) {
     return Ok(());
   }
 

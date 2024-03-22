@@ -1,10 +1,11 @@
-use crate::model::stream::{DashboardPayload, Payload};
+use crate::model::stream::{DashboardPayload, HintedSender, Payload};
 use crate::reader::FileStreamer;
 use crate::AppState;
 
 use std::io::Write;
+use std::ops::Not;
 
-use futures::StreamExt;
+use futures::{future, StreamExt};
 use actix_web::{error, web, HttpRequest, Responder, HttpResponse};
 
 
@@ -71,4 +72,30 @@ async fn get_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u
   }
 
   Ok(HttpResponse::Ok().streaming(streamer))
+}
+
+#[actix_web::post("/media/request_download/{id}")]
+async fn request_download(state: web::Data<AppState>, id: web::Path<u16>, clients: web::Json<Vec<u16>>) -> impl Responder {
+  let state = state.read().await;
+  let media = match state.library.iter().find(|media| media.id == *id) {
+    Some(media) => media,
+    None => return HttpResponse::NotFound().finish(),
+  };
+  
+  
+  let id = id.into_inner();
+  let payload = Payload::DownloadMedia(id).into_bytes();
+  
+  let futs = state.streams.iter().filter_map(|(tx, client_id)| {
+    if clients.contains(client_id) && !media.downloaded.contains(client_id) {
+      Some(tx.send_hinted(payload.clone()))
+    } else {
+      None
+    }
+  });
+
+  future::join_all(futs).await;
+  log::info!("Requested download of media {} for {} clients", id, clients.len());
+
+  HttpResponse::Ok().finish()
 }
