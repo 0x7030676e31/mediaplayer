@@ -7,14 +7,17 @@ use std::{env, fs};
 use serde::{Deserialize, Serialize};
 use tokio::time::{sleep, Duration};
 
-fn path() -> &'static str {
+pub fn path() -> &'static str {
   static PATH: OnceLock<String> = OnceLock::new();
   PATH.get_or_init(|| {
-    let local_app_data = env::var("LOCALAPPDATA").unwrap();
-    let path = format!("{}/.mediaplayer", local_app_data);
-    
-    if !fs::metadata(&path).is_ok() {
-      fs::create_dir_all(&path).unwrap();
+    let path = format!("{}\\.mediaplayer", env::var("LOCALAPPDATA").unwrap());
+
+    println!("Working directory: {}", path);
+    if fs::metadata(&path).is_err() {
+      match fs::create_dir(&path) {
+        Ok(_) => println!("Created directory"),
+        Err(e) => eprintln!("Error creating directory: {}", e),
+      }
     }
 
     path
@@ -24,6 +27,8 @@ fn path() -> &'static str {
 #[derive(Serialize, Deserialize)]
 pub struct Data {
   pub library: HashSet<u16>,
+  #[serde(skip)]
+  pub being_downloaded: HashSet<u16>,
   pub id: u16,
 }
 
@@ -31,13 +36,15 @@ impl Data {
   fn new(id: u16) -> Self {
     Self {
       library: HashSet::new(),
+      being_downloaded: HashSet::new(),
       id,
     }
   }
 
   pub async fn init() -> Self {
-    let path = format!("{}/data.json", path());
+    let path = format!("{}\\data.json", path());
     if fs::metadata(&path).is_ok() {
+      println!("State file exists, reading...");
       return Self::read();
     }
 
@@ -55,12 +62,16 @@ impl Data {
   }
 
   fn read() -> Self {
-    let content = fs::read_to_string(format!("{}/data.json", path())).unwrap();
+    let content = fs::read_to_string(format!("{}\\data.json", path())).unwrap();
+    println!("Initiating data from file: {}", format!("{}\\data.json", path()));
+    
     serde_json::from_str(&content).unwrap()
   }
 
   fn write(&self) {
     let content = serde_json::to_string(&self).unwrap();
-    fs::write(format!("{}/data.json", path()), content).unwrap();
+    println!("Writing data to file: {}", format!("{}\\data.json", path()));
+
+    fs::write(format!("{}\\data.json", path()), content).unwrap();
   }
 }

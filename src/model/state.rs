@@ -114,6 +114,7 @@ impl CleanupLoop for AppState {
         state.streams.retain(|(tx, id)| {
           let is_closed = tx.is_closed() || futures.next().unwrap().is_err();
           if is_closed {
+            log::info!("Client {} disconnected", id);
             clients.insert(*id);
           }
 
@@ -189,9 +190,12 @@ impl State {
     log::debug!("State written to disk");
   }
 
-  pub fn new_client(&mut self, hostname: String, ip: String) -> u16 {
+  pub async fn new_client(&mut self, hostname: String, ip: String) -> u16 {
     let id = self.next_id();
     let client = Client::new(id, ip, hostname);
+    let payload = DashboardPayload::ClientCreated(&client);
+    self.broadcast_to_dashboard(payload).await;
+    
     self.clients.push(client);
     self.write();
     id
@@ -223,14 +227,14 @@ impl State {
 
   pub async fn broadcast(&self, payload: Payload) {
     let payload = payload.into_bytes();
-    let futures = self.streams.iter().map(|(tx, _)| tx.send(payload.clone()));
+    let futures = self.streams.iter().map(|(tx, _)| tx.send_hinted(payload.clone()));
     future::join_all(futures).await;
   }
 
   pub async fn broadcast_to(&self, id: u16, payload: Payload) {
     let payload = payload.into_bytes();
     let futures = self.streams.iter().filter_map(|(tx, client_id)| {
-      if client_id == &id { Some(tx.send(payload.clone())) } else { None }
+      if client_id == &id { Some(tx.send_hinted(payload.clone())) } else { None }
     });
 
     future::join_all(futures).await;

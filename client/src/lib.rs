@@ -18,7 +18,8 @@ pub const ADDR: &str = if cfg!(debug_assertions) { "http://localhost:7777" } els
 #[tokio::main]
 pub async extern "C" fn load() {
   let data = Data::init().await;
-  
+  println!("Initiated data with id: {}", data.id);
+
   let client_id = data.id;
   let data = Arc::new(RwLock::new(data));
 
@@ -40,8 +41,8 @@ pub async extern "C" fn load() {
       };
 
       match payload {
-        stream::Payload::Ready => println!("Ready"),
-        stream::Payload::Ping => println!("Ping"),
+        stream::Payload::Ready => println!("Client ready"),
+        stream::Payload::Ping => {},
         stream::Payload::DownloadMedia(id) => data.download(id, client_id),
         stream::Payload::PlayMedia(_id) => todo!(),
         stream::Payload::StopMedia => todo!(),

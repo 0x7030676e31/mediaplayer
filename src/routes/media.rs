@@ -1,5 +1,5 @@
+use crate::model::stream::{DashboardPayload, Payload};
 use crate::reader::FileStreamer;
-use crate::model::stream::DashboardPayload;
 use crate::AppState;
 
 use std::io::Write;
@@ -10,10 +10,10 @@ use actix_web::{error, web, HttpRequest, Responder, HttpResponse};
 
 #[actix_web::post("/media/{name}")]
 async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: web::Path<String>) -> impl Responder {
-  let mut state = state.write().await;
-  let (id, mut writer) = state.get_audio_writer(name.into_inner());
+  let mut state_ = state.write().await;
+  let (id, mut writer) = state_.get_audio_writer(name.into_inner());
 
-  drop(state);
+  drop(state_);
   let mut payload = payload;
   while let Some(chunk) = payload.next().await {
     let chunk = chunk.unwrap();
@@ -21,6 +21,11 @@ async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: w
   }
 
   log::info!("Created media with id {}", id);
+
+  let state = state.read().await;
+  let payload = Payload::DownloadMedia(id);
+  state.broadcast(payload).await;
+
   id.to_string()
 }
 
@@ -54,6 +59,7 @@ async fn get_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u
     Err(_) => return Err(error::ErrorBadRequest("Invalid client id")),
   };
 
+  log::debug!("Client {} is downloading media {}", client_id, id);
   let media = state.library.iter_mut().find(|media| media.id == *id).unwrap();
   if media.downloaded.insert(client_id) {
     let payload = DashboardPayload::MediaDownloaded {

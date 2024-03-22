@@ -4,13 +4,27 @@ import { useStream } from "./stream";
 import Navbar from './components/navbar';
 
 export default function App(props: RouteSectionProps) {
-  const { connected } = useStream();
+  let input: HTMLInputElement | undefined;
+  // const { connected } = useStream();
+
+  async function upload(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const name = encodeURIComponent(file.name);
+    await fetch(`http://192.168.0.91:7777/api/media/${name}`, {
+      method: "POST",
+      body: file,
+    });
+  }
 
   return (
     <div class="app">
-      <Navbar />
-      {props.children}
-      <Overlay connected={connected} />
+      <input type="file" ref={input} onChange={upload} accept="audio/*" />
+
+      {/* <Navbar /> */}
+      {/* {props.children} */}
+      {/* <Overlay connected={connected} /> */}
     </div>
   );
 }

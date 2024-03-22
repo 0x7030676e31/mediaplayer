@@ -17,7 +17,7 @@ pub async fn client(req: HttpRequest, state: web::Data<AppState>, body: web::Jso
   };
   
   let mut state = state.write().await;
-  let id = state.new_client(body.0.hostname, ip.to_owned());
+  let id = state.new_client(body.0.hostname, ip.to_owned()).await;
   
   log::info!("Created a new client from {} with id {}", ip, id);
   Ok(id.to_string())
