@@ -52,6 +52,7 @@ pub struct Client {
   pub ip: String,
   pub hostname: String,
   pub activity: Activity,
+  pub playing: Option<u16>,
 }
 
 impl Client {
@@ -61,6 +62,7 @@ impl Client {
       ip,
       hostname,
       activity: Activity::Online,
+      playing: None,
     }
   }
 }

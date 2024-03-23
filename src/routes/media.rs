@@ -3,10 +3,9 @@ use crate::reader::FileStreamer;
 use crate::AppState;
 
 use std::io::Write;
-use std::ops::Not;
 
 use futures::{future, StreamExt};
-use actix_web::{error, web, HttpRequest, Responder, HttpResponse};
+use actix_web::{error, web, HttpRequest, HttpResponse, Responder, Scope};
 
 
 #[actix_web::post("/media/{name}")]
@@ -31,7 +30,7 @@ async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: w
 }
 
 #[actix_web::get("/media/{id}")]
-async fn get_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u16>) -> Result<impl Responder, actix_web::Error> {
+async fn download_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u16>) -> Result<impl Responder, actix_web::Error> {
   let mut state = state.write().await;
 
   if !state.library.iter().any(|media| media.id == *id) {
@@ -74,7 +73,7 @@ async fn get_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u
   Ok(HttpResponse::Ok().streaming(streamer))
 }
 
-#[actix_web::post("/media/request_download/{id}")]
+#[actix_web::post("/media/{id}/request_download")]
 async fn request_download(state: web::Data<AppState>, id: web::Path<u16>, clients: web::Json<Vec<u16>>) -> impl Responder {
   let state = state.read().await;
   let media = match state.library.iter().find(|media| media.id == *id) {
@@ -98,4 +97,137 @@ async fn request_download(state: web::Data<AppState>, id: web::Path<u16>, client
   log::info!("Requested download of media {} for {} clients", id, clients.len());
 
   HttpResponse::Ok().finish()
+}
+
+#[actix_web::delete("/media/{id}")]
+async fn delete_media(state: web::Data<AppState>, id: web::Path<u16>) -> impl Responder {
+  let mut state = state.write().await;
+  let id = id.into_inner();
+  state.library.retain(|media| media.id != id);
+  state.write();
+
+  let payload = Payload::DeleteMedia(id).into_bytes();
+  let futs = state.streams.iter().map(|(tx, _)| tx.send_hinted(payload.clone()));
+  future::join_all(futs).await;
+
+  log::info!("Deleted media with id {}", id);
+  HttpResponse::Ok().finish()
+}
+
+#[actix_web::post("/media/{id}/play")]
+async fn play_media(state: web::Data<AppState>, id: web::Path<u16>, clients: web::Json<Vec<u16>>) -> impl Responder {
+  let state = state.read().await;
+  if !state.library.iter().any(|media| media.id == *id) {
+    return HttpResponse::NotFound().finish();
+  }
+
+  let id = id.into_inner();
+  let payload = Payload::PlayMedia(id).into_bytes();
+
+  let futs = state.streams.iter().filter_map(|(tx, client_id)| {
+    state.clients.iter()
+      .find(|client| client.id == *client_id)
+      .map(|client| client.playing.is_none().then(|| tx.send_hinted(payload.clone())))
+      .flatten()
+  });
+
+  future::join_all(futs).await;
+  log::info!("Requested play of media {} for {} clients", id, clients.len());
+
+  HttpResponse::Ok().finish()
+}
+
+#[actix_web::post("/media/stop")]
+async fn stop_media(state: web::Data<AppState>, clients: web::Json<Vec<u16>>) -> impl Responder {
+  let state = state.read().await;
+  let payload = Payload::StopMedia.into_bytes();
+
+  let futs = state.streams.iter().filter_map(|(tx, client_id)| {
+    clients.contains(client_id).then(|| tx.send_hinted(payload.clone()))
+  });
+
+  future::join_all(futs).await;
+  log::info!("Requested stop for {} clients", clients.len());
+
+  HttpResponse::Ok().finish()
+}
+
+#[actix_web::post("/media/{id}/playing")]
+async fn playing_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u16>) -> impl Responder {
+  let client_id = match req.headers().get("X-Client-Id") {
+    Some(id) => id,
+    None => return HttpResponse::BadRequest().finish(),
+  };
+
+  let client_id = match client_id.to_str() {
+    Ok(id) => id,
+    Err(_) => return HttpResponse::BadRequest().finish(),
+  };
+
+  let client_id = match client_id.parse::<u16>() {
+    Ok(id) => id,
+    Err(_) => return HttpResponse::BadRequest().finish(),
+  };
+
+  let mut state = state.write().await;
+  let client = match state.clients.iter_mut().find(|client| client.id == client_id) {
+    Some(client) => client,
+    None => return HttpResponse::NotFound().finish(),
+  };
+
+  client.playing = Some(*id);
+  
+  let payload = DashboardPayload::MediaStarted {
+    media: *id,
+    client: client_id,
+  };
+
+  state.broadcast_to_dashboard(payload).await;
+  log::info!("Client {} started playing media {}", client_id, id);
+
+  HttpResponse::Ok().finish()
+}
+
+#[actix_web::post("/media/{id}/stopped")]
+async fn stopped_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u16>) -> impl Responder {
+  let client_id = match req.headers().get("X-Client-Id") {
+    Some(id) => id,
+    None => return HttpResponse::BadRequest().finish(),
+  };
+
+  let client_id = match client_id.to_str() {
+    Ok(id) => id,
+    Err(_) => return HttpResponse::BadRequest().finish(),
+  };
+
+  let client_id = match client_id.parse::<u16>() {
+    Ok(id) => id,
+    Err(_) => return HttpResponse::BadRequest().finish(),
+  };
+
+  let mut state = state.write().await;
+  let client = match state.clients.iter_mut().find(|client| client.id == client_id) {
+    Some(client) => client,
+    None => return HttpResponse::NotFound().finish(),
+  };
+
+  client.playing = None;
+
+  let payload = DashboardPayload::MediaStopped(*id);
+  state.broadcast_to_dashboard(payload).await;
+  log::info!("Client {} stopped playing media {}", client_id, id);
+
+  HttpResponse::Ok().finish()
+}
+
+pub fn routes() -> Scope {
+  Scope::new("/media")
+    .service(upload_media)
+    .service(download_media)
+    .service(request_download)
+    .service(delete_media)
+    .service(play_media)
+    .service(stop_media)
+    .service(playing_media)
+    .service(stopped_media)
 }

@@ -20,6 +20,7 @@ pub enum Payload {
   Ready,
   Ping,
   DownloadMedia(u16),
+  DeleteMedia(u16),
   PlayMedia(u16),
   StopMedia,
   SelfDestruct,
@@ -39,6 +40,11 @@ pub enum DashboardPayload<'a> {
     media: u16,
     client: u16,
   },
+  MediaStarted {
+    media: u16,
+    client: u16,
+  },
+  MediaStopped(u16),
 }
 
 impl Payload {
