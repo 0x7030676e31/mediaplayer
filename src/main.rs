@@ -1,11 +1,13 @@
 use std::sync::Arc;
+use std::fs::File;
 use std::env;
 
-use model::state::CleanupLoop;
+use model::state::{CleanupLoop, path};
 use model::state;
+use reader::FileStreamer;
 
 use tokio::sync::RwLock;
-use actix_web::web::Data;
+use actix_web::{web, HttpResponse, error, Responder};
 
 mod model;
 mod routes;
@@ -32,11 +34,29 @@ async fn main() -> std::io::Result<()> {
   let server = actix_web::HttpServer::new(move || {
     actix_web::App::new()
       .wrap(actix_cors::Cors::permissive())
-      // .wrap(actix_web::middleware::Logger::default())
-      .app_data(Data::new(state.clone()))
+      .app_data(web::Data::new(state.clone()))
       .service(routes::routes())
+      .service(index)
+      .service(r#static)
   });
 
   let ip = env::var("IP").unwrap_or(String::from("0.0.0.0"));
   server.bind((ip, INNER_PORT))?.run().await
+}
+
+#[actix_web::get("/")]
+async fn index() -> impl Responder {
+  let file = File::open(format!("{}/static/index.html", path())).unwrap();
+  HttpResponse::Ok().streaming(FileStreamer(file))
+}
+
+#[actix_web::get("/assets/{asset}")]
+async fn r#static(asset: web::Path<String>) -> Result<impl Responder, actix_web::Error> {
+  let path = format!("{}/static/{}", path(), asset.into_inner());
+  let file = match File::open(path) {
+    Ok(file) => file,
+    Err(_) => return Err(error::ErrorNotFound("File not found")),
+  };
+
+  Ok(HttpResponse::Ok().streaming(FileStreamer(file)))
 }

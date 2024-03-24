@@ -6,7 +6,14 @@ body {
   padding: 0;
   width: 100vw;
   height: 100vh;
-  background-color: lighten($background, 1%);
+  background-color: $base;
+}
+
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .overlay {
@@ -15,7 +22,7 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  background-color: darken($background, 10%);
+  background-color: $crust;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -35,7 +42,7 @@ body {
   width: calc(log(2) * 10vmin);
 
   & .path {
-    stroke: $accent;
+    stroke: $mauve;
     stroke-linecap: round;
     animation: dash 1.5s ease-in-out infinite;
   }

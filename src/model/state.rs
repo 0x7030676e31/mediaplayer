@@ -55,7 +55,6 @@ pub struct Client {
   pub ip: String,
   pub hostname: String,
   pub username: String,
-  pub distro: String,
   pub activity: Activity,
   #[serde(skip)]
   pub playing: Option<(u16, tokio::task::JoinHandle<()>)>,
@@ -65,17 +64,15 @@ pub struct Client {
 pub struct ClientInfo {
   hostname: String,
   username: String,
-  distro: String,
 }
 
 impl Client {
-  pub fn new(id: u16, ip: String, hostname: String, username: String, distro: String) -> Self {
+  pub fn new(id: u16, ip: String, hostname: String, username: String) -> Self {
     Self {
       id,
       ip,
       hostname,
       username,
-      distro,
       activity: Activity::Online,
       playing: None,
     }
@@ -84,7 +81,7 @@ impl Client {
 
 impl ClientInfo {
   pub fn into_client(self, id: u16, ip: String) -> Client {
-    Client::new(id, ip, self.hostname, self.username, self.distro)
+    Client::new(id, ip, self.hostname, self.username)
   }
 }
 
@@ -183,6 +180,8 @@ pub struct State {
   pub streams: Vec<(mpsc::Sender<Bytes>, u16)>,
   #[serde(skip)]
   pub dashboard_streams: Vec<mpsc::Sender<sse::Event>>,
+  #[serde(skip)]
+  ack: u64,
 }
 
 impl State {
@@ -242,7 +241,7 @@ impl State {
     (id, writer)
   }
 
-  pub fn set_audio_length(&mut self, id: u16) {
+  pub fn set_audio_length(&mut self, id: u16) -> u64 {
     let path = format!("{}/media/{}", path(), id);
     let file = Probe::open(&path)
       .unwrap()
@@ -256,6 +255,7 @@ impl State {
     media.length = length;
 
     self.write();
+    length
   }
 
   pub fn get_audio_reader(&self, id: u16) -> Option<fs::File> {
@@ -281,8 +281,21 @@ impl State {
     future::join_all(futures).await;
   }
 
-  pub async fn broadcast_to_dashboard<'a>(&self, payload: DashboardPayload<'a>) {
-    let payload = payload.into_event();
+  pub fn next_ack(&mut self) -> u64 {
+    self.ack += 1;
+    self.ack
+  }
+
+  pub async fn broadcast_to_dashboard<'a>(&mut self, payload: DashboardPayload<'a>) {
+    let payload = payload.into_event(self.next_ack(), None);
+    let futures = self.dashboard_streams.iter().map(|tx| tx.send(payload.clone()));
+    
+    future::join_all(futures).await;
+  }
+
+
+  pub async fn broadcast_to_dashboard_with_nonce<'a>(&mut self, payload: DashboardPayload<'a>, nonce: u64) {
+    let payload = payload.into_event(self.next_ack(), Some(nonce));
     let futures = self.dashboard_streams.iter().map(|tx| tx.send(payload.clone()));
     
     future::join_all(futures).await;

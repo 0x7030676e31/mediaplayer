@@ -1,0 +1,38 @@
+@import "../palette.scss";
+
+.logs {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  width: 100%;
+}
+
+.grid > div {
+  padding: 0.5rem 1rem;
+  // height: 2.2rem;
+}
+
+.grid > div:nth-child(6n + 4),
+.grid > div:nth-child(6n + 5),
+.grid > div:nth-child(6n + 6) {
+  background-color: $mantle;
+}
+
+.header {
+  color: $text;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 1.15rem;
+}
+
+.grid > div:not(.header) {
+  display: flex;
+  align-items: center;
+  color: $overlay2;
+}

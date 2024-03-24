@@ -6,11 +6,15 @@ import App from "./App";
 import "./index.scss";
 
 const Library = lazy(() => import("./components/library"));
+const Home = lazy(() => import("./components/home"));
+const Logs = lazy(() => import("./components/logs"));
 
 render(
   () => (
     <Router root={App}>
-      <Route path="/test" component={Library} />
+      <Route path="/" component={Home} />
+      <Route path="/library" component={Library} />
+      <Route path="/logs" component={Logs} />
     </Router>
   ),
   document.getElementById("root")!

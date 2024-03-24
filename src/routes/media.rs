@@ -8,10 +8,12 @@ use futures::{future, StreamExt};
 use actix_web::{error, web, HttpRequest, HttpResponse, Responder, Scope};
 use tokio::time::{sleep, Duration};
 
-#[actix_web::post("/upload/{name}")]
-async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: web::Path<String>) -> impl Responder {
+#[actix_web::post("/upload/{nonce}/{name}")]
+async fn upload_media(state: web::Data<AppState>, payload: web::Payload, path: web::Path<(u64, String)>) -> impl Responder {
   let mut state_ = state.write().await;
-  let (id, mut writer) = state_.get_audio_writer(name.into_inner());
+  let (nonce, name) = path.into_inner();
+
+  let (id, mut writer) = state_.get_audio_writer(name.clone());
 
   drop(state_);
   let mut payload = payload;
@@ -20,14 +22,21 @@ async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: w
     writer.write_all(&chunk).unwrap();
   }
 
-  log::info!("Created media with id {}", id);
+  log::info!("Created media with id {} (nonce: {})", id, nonce);
 
   let mut state = state.write().await;
-  state.set_audio_length(id);
+  let length = state.set_audio_length(id);
 
   let payload = Payload::DownloadMedia(id);
   state.broadcast(payload).await;
 
+  let payload = DashboardPayload::MediaCreated {
+    id,
+    name: &name,
+    length,
+  };
+
+  state.broadcast_to_dashboard_with_nonce(payload, nonce).await;
   id.to_string()
 }
 
@@ -110,7 +119,10 @@ async fn delete_media(state: web::Data<AppState>, id: web::Path<u16>) -> impl Re
 
   let payload = Payload::DeleteMedia(id).into_bytes();
   let futs = state.streams.iter().map(|(tx, _)| tx.send_hinted(payload.clone()));
+
   future::join_all(futs).await;
+  let payload = DashboardPayload::MediaDeleted(id);
+  state.broadcast_to_dashboard(payload).await;
 
   log::info!("Deleted media with id {}", id);
   HttpResponse::Ok().finish()

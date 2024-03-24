@@ -54,6 +54,7 @@ pub async fn dashboard_stream(state: web::Data<AppState>) -> impl Responder {
   tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
   let mut state = state.write().await;
+  let ack = state.next_ack();
   state.dashboard_streams.push(tx.clone());
 
   let payload = DashboardPayload::Ready {
@@ -61,7 +62,7 @@ pub async fn dashboard_stream(state: web::Data<AppState>) -> impl Responder {
     clients: &state.clients,
   };
 
-  let payload = payload.into_event();
+  let payload = payload.into_event(ack, None);
   tokio::spawn(async move {
     if let Err(err) = tx.send(payload).await {
       log::error!("Failed to send ready payload: {}", err);

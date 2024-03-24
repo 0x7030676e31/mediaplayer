@@ -36,6 +36,12 @@ pub enum DashboardPayload<'a> {
   ClientCreated(&'a Client),
   ClientConnected(u16),
   ClientDisconnected(&'a HashSet<u16>),
+  MediaCreated {
+    id: u16,
+    name: &'a str,
+    length: u64,
+  },
+  MediaDeleted(u16),
   MediaDownloaded {
     media: u16,
     client: u16,
@@ -53,9 +59,17 @@ impl Payload {
   }
 }
 
+#[derive(Serialize)]
+struct DashboardPayloadInner<'a> {
+  payload: DashboardPayload<'a>,
+  nonce: Option<u64>,
+  ack: u64,
+}
+
 impl<'a> DashboardPayload<'a> {
-  pub fn into_event(self) -> Event {
-    Event::Data(Data::new_json(self).unwrap())
+  pub fn into_event(self, ack: u64, nonce: Option<u64>) -> Event {
+    let inner = DashboardPayloadInner { payload: self, ack, nonce, };
+    Event::Data(Data::new_json(inner).unwrap())
   }
 }
 
