@@ -58,7 +58,7 @@ pub struct Client {
   pub distro: String,
   pub activity: Activity,
   #[serde(skip)]
-  pub playing: Option<u16>,
+  pub playing: Option<(u16, tokio::task::JoinHandle<()>)>,
 }
 
 #[derive(Deserialize)]

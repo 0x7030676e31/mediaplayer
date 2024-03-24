@@ -6,7 +6,7 @@ use std::io::Write;
 
 use futures::{future, StreamExt};
 use actix_web::{error, web, HttpRequest, HttpResponse, Responder, Scope};
-
+use tokio::time::{sleep, Duration};
 
 #[actix_web::post("/upload/{name}")]
 async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: web::Path<String>) -> impl Responder {
@@ -171,20 +171,43 @@ async fn playing_media(req: HttpRequest, state: web::Data<AppState>, id: web::Pa
     Err(_) => return HttpResponse::BadRequest().finish(),
   };
 
-  let mut state = state.write().await;
-  let client = match state.clients.iter_mut().find(|client| client.id == client_id) {
+  let mut state_ = state.write().await;
+  let duration = match state_.library.iter().find(|media| media.id == *id) {
+    Some(media) => media.length,
+    None => return HttpResponse::NotFound().finish(),
+  };
+
+  let client = match state_.clients.iter_mut().find(|client| client.id == client_id) {
     Some(client) => client,
     None => return HttpResponse::NotFound().finish(),
   };
 
-  client.playing = Some(*id);
-  
+  let id = *id;
+  let state2 = state.clone();
+  let handle = tokio::spawn(async move {
+    sleep(Duration::from_millis(duration)).await;
+    let mut state = state2.write().await;
+    
+    let client = match state.clients.iter_mut().find(|client| client.id == client_id) {
+      Some(client) => client,
+      None => return,
+    };
+
+    if let Some(_) = client.playing.take() {
+      let payload = DashboardPayload::MediaStopped(id);
+      state.broadcast_to_dashboard(payload).await;
+      
+      log::info!("Client {} stopped playing media {}", client_id, id);
+    }
+  });
+
+  client.playing = Some((id, handle));
   let payload = DashboardPayload::MediaStarted {
-    media: *id,
+    media: id,
     client: client_id,
   };
 
-  state.broadcast_to_dashboard(payload).await;
+  state_.broadcast_to_dashboard(payload).await;
   log::info!("Client {} started playing media {}", client_id, id);
 
   HttpResponse::Ok().finish()
@@ -213,12 +236,15 @@ async fn stopped_media(req: HttpRequest, state: web::Data<AppState>, id: web::Pa
     None => return HttpResponse::NotFound().finish(),
   };
 
-  client.playing = None;
-
-  let payload = DashboardPayload::MediaStopped(*id);
-  state.broadcast_to_dashboard(payload).await;
-  log::info!("Client {} stopped playing media {}", client_id, id);
-
+  if let Some((_, handle)) = client.playing.take() {
+    handle.abort();
+    
+    let payload = DashboardPayload::MediaStopped(*id);
+    state.broadcast_to_dashboard(payload).await;
+    
+    log::info!("Client {} stopped playing media {}", client_id, id);
+  }
+  
   HttpResponse::Ok().finish()
 }
 
