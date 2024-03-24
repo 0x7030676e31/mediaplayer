@@ -1,5 +1,5 @@
 import { Accessor, For, createSignal, onCleanup } from "solid-js";
-import { useMedia, useClients, useTempMedia, base_url, delete_media } from '../stream';
+import { useMedia, useClients, useTempMedia, base_url, delete_media, request_download } from '../stream';
 import { FaSolidPause } from "solid-icons/fa";
 import { FiPlay } from "solid-icons/fi";
 import { AiOutlineCloudSync, AiTwotoneDelete } from "solid-icons/ai";
@@ -59,6 +59,12 @@ export default function Library() {
   );
 }
 
+function fallback() {
+  return (
+    <></>
+  );
+}
+
 type TempEntryProps = {
   name: string;
 };
@@ -94,7 +100,22 @@ type EntryProps = {
 
 function Entry({ id, name, downloaded, length, playing, setPlaying }: EntryProps) {
   const [ pending, setPending ] = createSignal(false);
+  const [ refreshCd, setRefreshCd ] = createSignal(false);
   const [ clients, _ ] = useClients();
+
+  let refreshTimeout: number | null = null;
+
+  onCleanup(() => {
+    if (refreshTimeout !== null) clearTimeout(refreshTimeout);
+  });
+
+  async function refresh() {
+    if (pending() || refreshCd()) return;
+
+    setRefreshCd(true);
+    refreshTimeout = setTimeout(() => setRefreshCd(false), 1000 * 30);
+    await request_download(id);
+  }
 
   async function remove() {
     if (pending()) return;
@@ -153,7 +174,8 @@ function Entry({ id, name, downloaded, length, playing, setPlaying }: EntryProps
       <div class={styles.iconWrapper}>
         <div
           class={`${styles.icon} ${styles.sync}`}
-          classList={{ [styles.disabled]: pending() }}
+          classList={{ [styles.disabled]: pending() || refreshCd() }}
+          onClick={refresh}
         >
           <AiOutlineCloudSync />
         </div>

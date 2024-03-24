@@ -1,7 +1,7 @@
 import { batch, createSignal } from "solid-js";
 
 let sse: EventSource | null = null;
-export const base_url = import.meta.env.DEV ? "http://:7777" : "";
+export const base_url = import.meta.env.DEV ? "http://192.168.0.91:7777" : "";
 
 type Payload
   = { type: "Ready", payload: { library: Media[], clients: Client[] } }
@@ -93,6 +93,13 @@ function handle(message: string) {
       });
       break;
 
+    case "MediaDownloaded":
+      batch(() => {
+        log(`Media ${data.payload.media} has been downloaded by client ${data.payload.client}`);
+        setMedia(media().map(m => m.id === data.payload.media ? { ...m, downloaded: [ ...m.downloaded, data.payload.client ] } : m));
+      });
+      break;
+
     default:
       console.log("Unhandled event", data);
   }
@@ -135,4 +142,15 @@ export async function add_media(file: File) {
 export async function delete_media(id: number) {
   log(`Media ${id} has been set for deletion`);
   await fetch(`${base_url}/api/media/${id}`, { method: "DELETE" });
+}
+
+export async function request_download(id: number) {
+  log(`Media ${id} has been requested for download`);
+  const target = media().find(m => m.id === id);
+
+  await fetch(`${base_url}/api/media/${id}/request_download`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(clients().filter(c => !target?.downloaded.includes(c.id)).map(c => c.id)),
+  });
 }

@@ -19,11 +19,11 @@ declare global {
     id: number;
     ip: string;
     hostname: string;
-    activity: Activity;
     username: String,
+    activity: Activity;
   }
 
-  type Activity = { activity: Online } | { activity: Offline, timestamp: number };
+  type Activity = { activity: "Online" } | { activity: "Offline", timestamp: number };
 }
 
 export {}

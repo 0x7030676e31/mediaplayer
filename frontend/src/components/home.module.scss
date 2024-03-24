@@ -4,3 +4,9 @@
   flex-grow: 1;
   overflow-y: auto;
 }
+
+.grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto auto auto auto;
+  width: 100%;
+}
