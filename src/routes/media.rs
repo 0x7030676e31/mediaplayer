@@ -22,7 +22,9 @@ async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: w
 
   log::info!("Created media with id {}", id);
 
-  let state = state.read().await;
+  let mut state = state.write().await;
+  state.set_audio_length(id);
+
   let payload = Payload::DownloadMedia(id);
   state.broadcast(payload).await;
 

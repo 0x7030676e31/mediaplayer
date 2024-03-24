@@ -3,6 +3,9 @@ import { Accessor } from "solid-js";
 import { useStream } from "./stream";
 import Navbar from './components/navbar';
 
+const client_id = 1;
+const media_id = 2;
+
 export default function App(props: RouteSectionProps) {
   let input: HTMLInputElement | undefined;
   // const { connected } = useStream();
@@ -12,15 +15,33 @@ export default function App(props: RouteSectionProps) {
     if (!file) return;
 
     const name = encodeURIComponent(file.name);
-    await fetch(`http://192.168.0.91:7777/api/media/${name}`, {
+    await fetch(`http://:7777/api/media/upload/${name}`, {
       method: "POST",
       body: file,
+    });
+  }
+
+  async function play() {
+    await fetch(`http://:7777/api/media/${media_id}/play`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([ client_id ]),
+    });
+  }
+
+  async function stop() {
+    await fetch("http://:7777/api/media/stop", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([ client_id ]),
     });
   }
 
   return (
     <div class="app">
       <input type="file" ref={input} onChange={upload} accept="audio/*" />
+      <button onClick={play}> Play media </button>
+      <button onClick={stop}> Stop media </button>
 
       {/* <Navbar /> */}
       {/* {props.children} */}

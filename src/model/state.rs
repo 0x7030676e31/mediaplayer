@@ -10,8 +10,9 @@ use actix_web::web::Bytes;
 use futures::future;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
-use actix_web_lab::sse;
 use tokio::time;
+use actix_web_lab::sse;
+use lofty::{Probe, AudioFile};
 
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(15);
 
@@ -20,6 +21,7 @@ pub struct Media {
   pub id: u16,
   pub name: String,
   pub downloaded: HashSet<u16>,
+  pub length: u64,
 }
 
 impl Media {
@@ -28,6 +30,7 @@ impl Media {
       id,
       name,
       downloaded: HashSet::new(),
+      length: 0,
     }
   }
 }
@@ -221,12 +224,14 @@ impl State {
     id
   }
 
+  // This method won't save the state to disk
+  // Because the `set_audio_length` method will be called
+  // right after this method is called
   pub fn get_audio_writer(&mut self, name: String) -> (u16, fs::File) {
     let id = self.next_id();
     let media = Media::new(id, name);
 
     self.library.push(media);
-    self.write();
 
     let dir = format!("{}/media", path());
     if !fs::metadata(&dir).is_ok() {
@@ -235,6 +240,22 @@ impl State {
 
     let writer = fs::File::create(format!("{}/{}", dir, id)).unwrap();
     (id, writer)
+  }
+
+  pub fn set_audio_length(&mut self, id: u16) {
+    let path = format!("{}/media/{}", path(), id);
+    let file = Probe::open(&path)
+      .unwrap()
+      .guess_file_type()
+      .unwrap()
+      .read()
+      .unwrap();
+
+    let length = file.properties().duration().as_millis() as u64;
+    let media = self.library.iter_mut().find(|media| media.id == id).unwrap();
+    media.length = length;
+
+    self.write();
   }
 
   pub fn get_audio_reader(&self, id: u16) -> Option<fs::File> {
