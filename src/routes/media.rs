@@ -8,7 +8,7 @@ use futures::{future, StreamExt};
 use actix_web::{error, web, HttpRequest, HttpResponse, Responder, Scope};
 
 
-#[actix_web::post("/media/{name}")]
+#[actix_web::post("/upload/{name}")]
 async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: web::Path<String>) -> impl Responder {
   let mut state_ = state.write().await;
   let (id, mut writer) = state_.get_audio_writer(name.into_inner());
@@ -29,7 +29,7 @@ async fn upload_media(state: web::Data<AppState>, payload: web::Payload, name: w
   id.to_string()
 }
 
-#[actix_web::get("/media/{id}")]
+#[actix_web::get("/{id}")]
 async fn download_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u16>) -> Result<impl Responder, actix_web::Error> {
   let mut state = state.write().await;
 
@@ -73,7 +73,7 @@ async fn download_media(req: HttpRequest, state: web::Data<AppState>, id: web::P
   Ok(HttpResponse::Ok().streaming(streamer))
 }
 
-#[actix_web::post("/media/{id}/request_download")]
+#[actix_web::post("/{id}/request_download")]
 async fn request_download(state: web::Data<AppState>, id: web::Path<u16>, clients: web::Json<Vec<u16>>) -> impl Responder {
   let state = state.read().await;
   let media = match state.library.iter().find(|media| media.id == *id) {
@@ -99,7 +99,7 @@ async fn request_download(state: web::Data<AppState>, id: web::Path<u16>, client
   HttpResponse::Ok().finish()
 }
 
-#[actix_web::delete("/media/{id}")]
+#[actix_web::delete("/{id}")]
 async fn delete_media(state: web::Data<AppState>, id: web::Path<u16>) -> impl Responder {
   let mut state = state.write().await;
   let id = id.into_inner();
@@ -114,7 +114,7 @@ async fn delete_media(state: web::Data<AppState>, id: web::Path<u16>) -> impl Re
   HttpResponse::Ok().finish()
 }
 
-#[actix_web::post("/media/{id}/play")]
+#[actix_web::post("/{id}/play")]
 async fn play_media(state: web::Data<AppState>, id: web::Path<u16>, clients: web::Json<Vec<u16>>) -> impl Responder {
   let state = state.read().await;
   if !state.library.iter().any(|media| media.id == *id) {
@@ -123,7 +123,7 @@ async fn play_media(state: web::Data<AppState>, id: web::Path<u16>, clients: web
 
   let id = id.into_inner();
   let payload = Payload::PlayMedia(id).into_bytes();
-
+  
   let futs = state.streams.iter().filter_map(|(tx, client_id)| {
     state.clients.iter()
       .find(|client| client.id == *client_id)
@@ -137,7 +137,7 @@ async fn play_media(state: web::Data<AppState>, id: web::Path<u16>, clients: web
   HttpResponse::Ok().finish()
 }
 
-#[actix_web::post("/media/stop")]
+#[actix_web::post("/stop")]
 async fn stop_media(state: web::Data<AppState>, clients: web::Json<Vec<u16>>) -> impl Responder {
   let state = state.read().await;
   let payload = Payload::StopMedia.into_bytes();
@@ -152,7 +152,7 @@ async fn stop_media(state: web::Data<AppState>, clients: web::Json<Vec<u16>>) ->
   HttpResponse::Ok().finish()
 }
 
-#[actix_web::post("/media/{id}/playing")]
+#[actix_web::post("/{id}/playing")]
 async fn playing_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u16>) -> impl Responder {
   let client_id = match req.headers().get("X-Client-Id") {
     Some(id) => id,
@@ -188,7 +188,7 @@ async fn playing_media(req: HttpRequest, state: web::Data<AppState>, id: web::Pa
   HttpResponse::Ok().finish()
 }
 
-#[actix_web::post("/media/{id}/stopped")]
+#[actix_web::post("/{id}/stopped")]
 async fn stopped_media(req: HttpRequest, state: web::Data<AppState>, id: web::Path<u16>) -> impl Responder {
   let client_id = match req.headers().get("X-Client-Id") {
     Some(id) => id,

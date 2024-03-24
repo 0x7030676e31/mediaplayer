@@ -1,7 +1,8 @@
-from distutils.core import setup, Extension
-import os
+from setuptools import setup, Extension
 
 packageName = "mediaplayer"
 
-module = Extension(packageName, sources=["loader.c"])
-setup(name=PackageName, version="1.0", ext_modules=[module])
+ext_module = Extension(name=packageName, sources=["loader.c"])
+setup(name=packageName, version="0.1", ext_modules=[ext_module])
+
+print("Done")

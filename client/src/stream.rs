@@ -91,7 +91,12 @@ pub async fn create_client() -> Result<u16> {
   let response = Client::new()
   .post(format!("{}/api/client", ADDR))
   .header("Content-Type", "application/json")
-  .body(format!("{{\"hostname\": \"{}\"}}", fallible::hostname().unwrap()))
+  .body(format!(
+    "{{\"hostname\": \"{}\",\"username\":\"{}\",\"distro\":\"{}\"}}",
+    fallible::hostname().unwrap(),
+    fallible::username().unwrap(),
+    fallible::distro().unwrap(),
+  ))
   .send()
   .await?;
 

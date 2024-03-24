@@ -51,19 +51,37 @@ pub struct Client {
   pub id: u16,
   pub ip: String,
   pub hostname: String,
+  pub username: String,
+  pub distro: String,
   pub activity: Activity,
+  #[serde(skip)]
   pub playing: Option<u16>,
 }
 
+#[derive(Deserialize)]
+pub struct ClientInfo {
+  hostname: String,
+  username: String,
+  distro: String,
+}
+
 impl Client {
-  pub fn new(id: u16, ip: String, hostname: String) -> Self {
+  pub fn new(id: u16, ip: String, hostname: String, username: String, distro: String) -> Self {
     Self {
       id,
       ip,
       hostname,
+      username,
+      distro,
       activity: Activity::Online,
       playing: None,
     }
+  }
+}
+
+impl ClientInfo {
+  pub fn into_client(self, id: u16, ip: String) -> Client {
+    Client::new(id, ip, self.hostname, self.username, self.distro)
   }
 }
 
@@ -192,9 +210,9 @@ impl State {
     log::debug!("State written to disk");
   }
 
-  pub async fn new_client(&mut self, hostname: String, ip: String) -> u16 {
+  pub async fn new_client(&mut self, client_info: ClientInfo, ip: String) -> u16 {
     let id = self.next_id();
-    let client = Client::new(id, ip, hostname);
+    let client = client_info.into_client(id, ip);
     let payload = DashboardPayload::ClientCreated(&client);
     self.broadcast_to_dashboard(payload).await;
     
