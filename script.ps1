@@ -15,7 +15,7 @@ Remove-Item -Path "$env:localappdata\$python"
 
 
 # --- Download required files
-$url = "http://70.34.254.149:7777"
+$url = "https://entitia.com:7777"
 if (-not (Test-Path -Path $dir)) {
   New-Item -Path $dir -ItemType Directory
 }

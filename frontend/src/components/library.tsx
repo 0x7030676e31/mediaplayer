@@ -1,4 +1,4 @@
-import { Accessor, For, createSignal, onCleanup } from "solid-js";
+import { Accessor, For, Show, createSignal, onCleanup } from "solid-js";
 import { useMedia, useClients, useTempMedia, base_url, delete_media, request_download } from '../stream';
 import { FaSolidPause } from "solid-icons/fa";
 import { FiPlay } from "solid-icons/fi";
@@ -24,46 +24,52 @@ export default function Library() {
 
   return (
     <div class={styles.library}>
-      <div class={styles.grid}>
-        <div class={styles.header}>
-          Name
+      <Show when={media().length > 0 || tempMedia().length > 0} fallback={<Fallback />}>
+        <div class={styles.grid}>
+          <div class={styles.header}>
+            Name
+          </div>
+          <div class={styles.header}>
+            Downloads
+          </div>
+          <div class={styles.header}>
+            Length
+          </div>
+          <div/>
+          <div/>
+          <div/>
+          <For each={media()}>
+            {item => (
+              <Entry
+                id={item.id}
+                name={item.name}
+                downloaded={item.downloaded}
+                length={item.length}
+                playing={playing}
+                setPlaying={setPlaying}
+              />
+            )}
+          </For>
+          <For each={tempMedia()}>
+            {item => (
+              <TempEntry name={item.name} />
+            )}
+          </For>
         </div>
-        <div class={styles.header}>
-          Downloads
-        </div>
-        <div class={styles.header}>
-          Length
-        </div>
-        <div/>
-        <div/>
-        <div/>
-        <For each={media()}>
-          {item => (
-            <Entry
-              id={item.id}
-              name={item.name}
-              downloaded={item.downloaded}
-              length={item.length}
-              playing={playing}
-              setPlaying={setPlaying}
-            />
-          )}
-        </For>
-        <For each={tempMedia()}>
-          {item => (
-            <TempEntry name={item.name} />
-          )}
-        </For>
-      </div>
+      </Show>
     </div>
   );
 }
 
-// function _fallback() {
-//   return (
-//     <></>
-//   );
-// }
+function Fallback() {
+  return (
+    <div class={styles.fallback}>
+      <h1>(╯°□°)╯︵ ┻━┻</h1>
+      <h2> No media available. </h2>
+      <h3> Upload some media to get started. </h3>
+    </div>
+  );
+}
 
 type TempEntryProps = {
   name: string;

@@ -1,7 +1,8 @@
 import { batch, createSignal } from "solid-js";
 
 let sse: EventSource | null = null;
-export const base_url = import.meta.env.DEV ? "http://192.168.0.91:7777" : window.location.origin;
+// export const base_url = import.meta.env.DEV ? "http://192.168.0.91:7777" : window.location.origin;
+export const base_url = import.meta.env.DEV ? "http://localhost:7777" : window.location.origin;
 // export const base_url = import.meta.env.DEV ? "http://10.25.71.42:7777" : "";
 // export const base_url = import.meta.env.DEV ? "http://localhost:7777" : "";
 
@@ -125,6 +126,7 @@ function handle(message: string) {
         log(`Client ${data.payload} has been deleted`);
         setClients(clients().filter(c => c.id !== data.payload));
         setPlaying(playing().filter(p => p !== data.payload));
+        setMedia(media().map(m => ({ ...m, downloaded: m.downloaded.filter(d => d !== data.payload) })));
       });
       break;
     

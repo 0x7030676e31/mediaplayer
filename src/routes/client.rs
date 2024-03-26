@@ -59,6 +59,10 @@ pub async fn seppuku(req: HttpRequest, state: web::Data<AppState>) -> Result<imp
   let mut state = state.write().await;
   state.to_delete.remove(&client_id);
   state.clients.retain(|c| c.id != client_id);
+  state.library.iter_mut().for_each(|media| {
+    media.downloaded.retain(|c| *c != client_id);
+  });
+  
   state.write();
 
   log::info!("Client {} has committed seppuku", client_id);

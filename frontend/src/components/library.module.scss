@@ -3,6 +3,28 @@
 .library {
   flex-grow: 1;
   overflow-y: auto;
+  position: relative;
+}
+
+.fallback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: $overlay2;
+  text-align: center;
+
+  h1 {
+    font-size: 3rem;
+  }
+
+  h2 {
+    margin-bottom: 0;
+  }
+  
+  h3 {
+    margin-top: 0;
+  }
 }
 
 .grid {

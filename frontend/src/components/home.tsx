@@ -1,4 +1,4 @@
-import { Accessor, For, Setter, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { Accessor, For, Setter, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import { delete_client, onActivityChange, request_download_selected, start_media, stop_media, useClients, useMedia, usePlaying } from '../stream';
 import { AiOutlineCloudSync, AiTwotoneDelete } from "solid-icons/ai";
 import { FaSolidPause } from "solid-icons/fa";
@@ -84,61 +84,68 @@ export default function Home() {
           </div>
         </div>
       </Portal>
-      <div class={styles.grid}>
-        <div class={styles.header} onClick={e => e.stopPropagation()} />
-        <div class={styles.header} onClick={e => e.stopPropagation()}>
-          Hostname
-        </div>
-        <div class={styles.header} onClick={e => e.stopPropagation()}>
-          Username
-        </div>
-        <div class={styles.header} onClick={e => e.stopPropagation()}>
-          IP
-        </div>
-        <div class={styles.header} onClick={e => e.stopPropagation()}>
-          Activity
-        </div>
-        <div class={`${styles.iconWrapper} ${styles.header}`} onClick={e => e.stopPropagation()}>
-          <div
-            class={`${styles.icon} ${styles.play}`}
-            classList={{ [styles.disabled]: !is_playing_selected() }}
-            onClick={() => is_playing_selected() && stop()}
-          >
-            <FaSolidPause />
+      <Show when={clients().length > 0} fallback={<Fallback />}>
+        
+        <div class={styles.grid}>
+          <div class={styles.header} onClick={e => e.stopPropagation()} />
+          <div class={styles.header} onClick={e => e.stopPropagation()}>
+            Hostname
           </div>
-        </div>
-        <div class={`${styles.iconWrapper} ${styles.header}`} onClick={e => e.stopPropagation()}>
-          <div
-            class={`${styles.icon} ${styles.play} ${styles.disabled}`}
-            classList={{ [styles.disabled]: !is_selected_not_playing() }}
-            onClick={() => is_selected_not_playing() && setModal(true)}
-          >
-            <FiPlay />
+          <div class={styles.header} onClick={e => e.stopPropagation()}>
+            Username
           </div>
+          <div class={styles.header} onClick={e => e.stopPropagation()}>
+            IP
+          </div>
+          <div class={styles.header} onClick={e => e.stopPropagation()}>
+            Activity
+          </div>
+          <div class={`${styles.iconWrapper} ${styles.header}`} onClick={e => e.stopPropagation()}>
+            <div
+              class={`${styles.icon} ${styles.play}`}
+              classList={{ [styles.disabled]: !is_playing_selected() }}
+              onClick={() => is_playing_selected() && stop()}
+            >
+              <FaSolidPause />
+            </div>
+          </div>
+          <div class={`${styles.iconWrapper} ${styles.header}`} onClick={e => e.stopPropagation()}>
+            <div
+              class={`${styles.icon} ${styles.play} ${styles.disabled}`}
+              classList={{ [styles.disabled]: !is_selected_not_playing() }}
+              onClick={() => is_selected_not_playing() && setModal(true)}
+            >
+              <FiPlay />
+            </div>
+          </div>
+          <For each={clients_sorted()}>
+            {client => (
+              <Client
+                id={client.id}
+                hostname={client.hostname}
+                username={client.username}
+                ip={client.ip}
+                activity={client.activity.activity}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
+          </For>
         </div>
-        <For each={clients_sorted()}>
-          {client => (
-            <Client
-              id={client.id}
-              hostname={client.hostname}
-              username={client.username}
-              ip={client.ip}
-              activity={client.activity.activity}
-              selected={selected}
-              setSelected={setSelected}
-            />
-          )}
-        </For>
-      </div>
+      </Show>
     </div>
   );
 }
 
-// function _fallback() {
-//   return (
-//     <></>
-//   );
-// }
+function Fallback() {
+  return (
+    <div class={styles.fallback}>
+      <h1>(╯°□°)╯︵ ┻━┻</h1>
+      <h2> No clients available. </h2>
+      <h3> Install the client on the device of your choice. </h3>
+    </div>
+  );
+}
 
 type ModalEntryProps = {
   id: number;
