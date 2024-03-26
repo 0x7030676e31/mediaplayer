@@ -10,8 +10,8 @@ let audio: HTMLAudioElement | null = null;
 export default function Library() {
   const [ playing, setPlaying ] = createSignal<number>(-1);
   
-  const [ media, _a ] = useMedia();
-  const [ tempMedia, _b ] = useTempMedia();
+  const [ media ] = useMedia();
+  const [ tempMedia ] = useTempMedia();
   
   onCleanup(() => {
     if (audio !== null) {
@@ -59,11 +59,11 @@ export default function Library() {
   );
 }
 
-function fallback() {
-  return (
-    <></>
-  );
-}
+// function _fallback() {
+//   return (
+//     <></>
+//   );
+// }
 
 type TempEntryProps = {
   name: string;
@@ -101,7 +101,7 @@ type EntryProps = {
 function Entry({ id, name, downloaded, length, playing, setPlaying }: EntryProps) {
   const [ pending, setPending ] = createSignal(false);
   const [ refreshCd, setRefreshCd ] = createSignal(false);
-  const [ clients, _ ] = useClients();
+  const [ clients ] = useClients();
 
   let refreshTimeout: number | null = null;
 
@@ -136,12 +136,15 @@ function Entry({ id, name, downloaded, length, playing, setPlaying }: EntryProps
     if (pending()) return;
 
     if (audio !== null) {
-      setPlaying(-1);
       audio.onended = null;
       audio.pause();
       audio.remove();
       audio = null;
-      return;
+    
+      if (playing() === id) {
+        setPlaying(-1);
+        return;
+      };
     }
 
     setPlaying(id);

@@ -24,13 +24,8 @@ pub fn path() -> &'static str {
   static PATH: OnceLock<String> = OnceLock::new();
   PATH.get_or_init(|| {
     let path = format!("{}\\.mediaplayer", env::var("LOCALAPPDATA").unwrap());
-
-    println!("Working directory: {}", path);
     if fs::metadata(&path).is_err() {
-      match fs::create_dir(&path) {
-        Ok(_) => println!("Created directory"),
-        Err(e) => eprintln!("Error creating directory: {}", e),
-      }
+      let _ = fs::create_dir(&path);
     }
 
     path
@@ -86,7 +81,6 @@ unsafe fn init_audio_endpoint<'a>() -> Result<&'a IAudioEndpointVolume, &'static
     return Err("Failed to get endpoint volume.");
   }
 
-  println!("Endpoint volume retrieved successfully.");
   Ok(&*endpoint_volume)
 }
 
@@ -113,7 +107,6 @@ impl Data {
   pub async fn init() -> Self {
     let path = format!("{}\\data.bin", path());
     if fs::metadata(&path).is_ok() {
-      println!("State file exists, reading...");
       return Self::read();
     }
 

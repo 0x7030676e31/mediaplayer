@@ -13,7 +13,7 @@ function human_time(ms: number) {
 }
 
 export default function Logs() {
-  const [ logs, _ ] = useLogs();
+  const [ logs ] = useLogs();
 
   return (
     <div class={styles.logs}>

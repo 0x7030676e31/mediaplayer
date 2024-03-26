@@ -5,7 +5,7 @@ use std::fs;
 
 use actix_web::{Responder, HttpResponse, web};
 
-#[actix_web::get("/assets/{name}")]
+#[actix_web::get("/static/{name}")]
 pub async fn asset(name: web::Path<String>) -> impl Responder {
   let name = name.into_inner();
   let path = format!("{}/assets/{}", path(), name);

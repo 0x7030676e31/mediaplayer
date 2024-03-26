@@ -1,5 +1,7 @@
 use std::sync::Arc;
+use std::fs;
 
+use reqwest::Client;
 use stream::create_stream;
 use media::DataApi;
 use state::Data;
@@ -16,21 +18,26 @@ mod media;
 
 pub const ADDR: &str = if cfg!(debug_assertions) { "http://localhost:7777" } else { include_str!("../addr.txt") };
 
-// pub fn reset() {
-//   let path = state::path();
-//   std::fs::remove_dir_all(path).unwrap();
-//   std::process::exit(0);
-// }
+async fn seppuku(client_id: u16) {
+  let files = fs::read_dir(state::path()).unwrap();
+  for file in files.flatten() {
+    let _ = fs::remove_file(file.path());
+  }
+
+  let _ = fs::remove_dir_all(state::path());
+  Client::new()
+    .post(format!("{}/api/client/sepuku", ADDR))
+    .header("X-Client-Id", client_id)
+    .send()
+    .await
+    .unwrap();
+}
 
 #[no_mangle]
 #[tokio::main]
 #[allow(unreachable_code, unused_variables)]
-pub async extern "C" fn load() {
-  // reset();
-
+pub async extern "C" fn load() -> bool {
   let data = Data::init().await;
-  println!("Initiated data with id: {}", data.id);
-  println!("Library: {:?}", data.library);
 
   let client_id = data.id;
   let data = Arc::new(RwLock::new(data));
@@ -47,41 +54,28 @@ pub async extern "C" fn load() {
       let payload = match payload {
         Ok(payload) => payload,
         Err(e) => {
-          eprintln!("Error: {}", e);
           continue;
         },
       };
 
       match payload {
-        stream::Payload::Ready => println!("Client ready"),
+        stream::Payload::Ready(delete) => {
+          if delete {
+            seppuku(client_id).await;
+            return true;
+          }
+        },
         stream::Payload::Ping => {},
         stream::Payload::DownloadMedia(id) => data.download(id, client_id),
         stream::Payload::PlayMedia(id) => data.play(id),
         stream::Payload::StopMedia => data.stop(),
-        stream::Payload::SelfDestruct => todo!(),
+        stream::Payload::SelfDestruct => {
+          seppuku(client_id).await;
+          return true;
+        },
       }
     }
 
     sleep(Duration::from_secs(5)).await;
-  }
-}
-
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[tokio::test]
-  async fn test_init() {
-    let id = stream::create_client().await.unwrap();
-    println!("Client id: {}", id);
-
-    let mut stream = create_stream(id).await.unwrap();
-    let payload = stream.next().await;
-
-    println!("Payload: {:?}", payload);
-    sleep(Duration::from_secs(20)).await;
-
-    println!("Done");
   }
 }

@@ -14,7 +14,7 @@ use whoami::fallible;
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", content = "payload")]
 pub enum Payload {
-  Ready,
+  Ready(bool),
   Ping,
   DownloadMedia(u16),
   PlayMedia(u16),
@@ -53,7 +53,7 @@ impl<R: StreamExt<Item = reqwest::Result<Bytes>> + Unpin> Stream for PayloadStre
         let chunks = chunk.split_inclusive(|b| *b == b'\x00');
         for chunk in chunks.into_iter() {
           if chunk.last() != Some(&b'\x00') {
-            this.buffer.extend_from_slice(&chunk);
+            this.buffer.extend_from_slice(chunk);
             continue;
           }
 
@@ -92,10 +92,9 @@ pub async fn create_client() -> Result<u16> {
   .post(format!("{}/api/client", ADDR))
   .header("Content-Type", "application/json")
   .body(format!(
-    "{{\"hostname\": \"{}\",\"username\":\"{}\",\"distro\":\"{}\"}}",
+    "{{\"hostname\": \"{}\",\"username\":\"{}\"}}",
     fallible::hostname().unwrap(),
     fallible::username().unwrap(),
-    fallible::distro().unwrap(),
   ))
   .send()
   .await?;

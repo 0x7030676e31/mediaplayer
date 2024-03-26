@@ -6,8 +6,8 @@ import styles from "./navbar.module.scss";
 export default function Navbar() {
   let input: HTMLInputElement | undefined;
   
-  const [ media, _a ] = useMedia();
-  const [ clients, _b ] = useClients();
+  const [ media ] = useMedia();
+  const [ clients ] = useClients();
   const location = useLocation();
   const navigate = useNavigate();
 

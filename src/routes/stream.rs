@@ -33,7 +33,8 @@ pub async fn stream(req: HttpRequest, state: web::Data<AppState>) -> Result<impl
   client.activity = Activity::Online;
   
   state.streams.push((tx.clone(), id));
-  let payload = Payload::Ready.into_bytes();
+  let set_to_deletion = state.to_delete.iter().any(|to_delete| *to_delete == id);
+  let payload = Payload::Ready(set_to_deletion).into_bytes();
   
   tokio::spawn(async move {
     if let Err(err) = tx.send_hinted(payload).await {
@@ -57,9 +58,14 @@ pub async fn dashboard_stream(state: web::Data<AppState>) -> impl Responder {
   let ack = state.next_ack();
   state.dashboard_streams.push(tx.clone());
 
+  let playing = state.clients.iter().filter_map(|client| match client.playing {
+    Some(_) => Some(client.id),
+    None => None,
+  }).collect();
   let payload = DashboardPayload::Ready {
     library: &state.library,
     clients: &state.clients,
+    playing,
   };
 
   let payload = payload.into_event(ack, None);

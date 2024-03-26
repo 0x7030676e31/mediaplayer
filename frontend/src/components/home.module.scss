@@ -7,6 +7,325 @@
 
 .grid {
   display: grid;
-  grid-template-columns: auto 1fr 1fr auto auto auto auto;
+  grid-template-columns: auto 3fr 3fr 2fr auto auto auto;
   width: 100%;
 }
+
+.grid > div {
+  padding: 0.5rem 1rem;
+  height: 2.2rem;
+  overflow: hidden;
+  // border: 1px solid transparent;
+}
+
+.header {
+  color: $text;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 1.15rem;
+}
+
+.grid > div:not(.header) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  color: $overlay2;
+  transition: background-color 0.2s ease;
+}
+
+
+.grid > div:nth-child(14n + 8),
+.grid > div:nth-child(14n + 9),
+.grid > div:nth-child(14n + 10),
+.grid > div:nth-child(14n + 11),
+.grid > div:nth-child(14n + 12),
+.grid > div:nth-child(14n + 13),
+.grid > div:nth-child(14n + 14) {
+  background-color: $mantle;
+}
+
+.selected {
+  background-color: transparentize($mauve, 0.7) !important;
+  // color: $surface1 !important;
+
+  .badge {
+    background-color: transparent !important;
+  }
+}
+
+.grid > div:nth-child(14n + 8).selected,
+.grid > div:nth-child(14n + 9).selected,
+.grid > div:nth-child(14n + 10).selected,
+.grid > div:nth-child(14n + 11).selected,
+.grid > div:nth-child(14n + 12).selected,
+.grid > div:nth-child(14n + 13).selected,
+.grid > div:nth-child(14n + 14).selected {
+  background-color: transparentize($mauve, 0.75) !important;
+
+  .badge {
+    background-color: transparent !important;
+  }
+}
+
+
+.badge {
+  width: 100%;
+  // height: 100%;
+  background-color: $mantle;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1px 1rem;
+  border-radius: 2137px;
+  font-weight: 500;
+}
+
+.online {
+  color: limegreen;
+  border: 1px solid limegreen;
+}
+
+.offline {
+  color: lightcoral;
+  border: 1px solid lightcoral;
+}
+
+.iconWrapper {
+  padding: 0.5rem 0.5rem !important;
+  height: 100%;
+}
+
+.icon {
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 1.55rem;
+  border-radius: 20%;
+  transition: background-color 0.2s ease;
+
+  svg {
+    transition: color 0.2s ease;
+  }
+}
+
+.play > svg {
+  color: greenyellow;
+}
+
+.play:not(.disabled):hover {
+  background-color: transparentize(greenyellow, 0.75);
+}
+
+.play.disabled {
+  cursor: default;
+
+  svg {
+    color: transparentize(greenyellow, 0.6) !important;
+  }
+}
+
+.delete > svg {
+  color: lightcoral;
+}
+
+.delete:not(.disabled):hover {
+  background-color: transparentize(lightcoral, 0.75);
+}
+
+.delete.disabled {
+  cursor: default;
+
+  svg {
+    color: transparentize(lightcoral, 0.35) !important;
+  }
+}
+
+.iconPlaying > svg {
+  color: skyblue;
+  font-size: 1.75rem;
+  transition: opacity 0.2s ease;
+}
+
+.iconPlaying.hidden > svg {
+  opacity: 0;
+}
+
+.modalWrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  &.hidden {
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+.modal {
+  background-color: darken($mantle, 2%);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  border-radius: 10px;
+  width: 550px;
+  height: 800px;
+  box-shadow: 0 0 6px 3px rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  h1 {
+    color: $text;
+    font-size: 1.7rem;
+    font-weight: 500;
+    margin: 0;
+    border-bottom: 1px solid $surface1;
+    padding: 0 0.5rem 0.5rem 0.5rem;
+  }
+
+  .list {
+    flex-grow: 1;
+    background-color: $mantle;
+    width: 100%;
+    overflow-y: auto;
+    margin-top: 1rem;
+    border-radius: 10px;
+    border: 1px solid $surface1;
+  }
+
+  &:not(.hidden) {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 60px 60px auto;
+  background-color: $mantle;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+  padding: 0 1rem;
+  user-select: none;
+  
+  &.available {
+    cursor: pointer;
+  }
+
+  &.available:hover {
+    background-color: transparentize($mauve, 0.2) !important;
+    
+    div {
+      color: $base !important;
+    }
+
+    .hidden > svg {
+      color: $base !important;
+    }
+  }
+
+  div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: $overlay2;
+  }
+
+  &.available > div {
+    color: $text;
+  }
+  
+  & > div:not(.resyncIconWrapper) {
+    transition: color 0.2s ease;
+    padding: 1rem 0;
+  }
+
+  & > div:nth-child(1) {
+    margin-right: 1rem;
+  }
+}
+
+.item:nth-child(odd) {
+  background-color: $base;
+}
+
+.resyncIconWrapper {
+  // padding-right: 1rem;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0.3rem;
+  width: 100%
+}
+
+.resync {
+  aspect-ratio: 1 / 1;
+  // height: 50%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 1.5rem;
+  border-radius: 20%;
+  transition: background-color 0.2s ease;
+
+  svg {
+    transition: color 0.2s ease;
+  }
+
+  &:not(.hidden):not(.cooldown) > svg {
+    color: $sky;
+  }
+
+  &:not(.hidden).cooldown > svg {
+    cursor: default;
+    color: transparentize($sky, 0.6);
+  }
+
+  &:not(.hidden):not(.cooldown):hover {
+    background-color: transparentize($sky, 0.75);
+  }
+
+  &.hidden > svg {
+    color: $overlay2;
+  }
+}
+
+// .item {
+//   width: 100%;
+//   display: flex;
+//   align-items: center;
+//   background-color: $mantle;
+//   box-sizing: border-box;
+//   padding: 1rem;
+//   color: $overlay2;
+//   overflow: hidden;
+//   text-overflow: ellipsis;
+//   white-space: nowrap;
+//   transition: background-color 0.2s ease, color 0.2s ease;
+//   cursor: pointer;
+//   // height: 2.2rem;
+
+//   &:hover {
+//     background-color: transparentize($mauve, 0.2) !important;
+//     color: $base;
+//   }
+// }
+
+// .item:nth-child(odd) {
+//   background-color: $base;
+// }

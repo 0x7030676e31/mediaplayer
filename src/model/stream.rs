@@ -17,7 +17,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum Payload {
-  Ready,
+  Ready(bool),
   Ping,
   DownloadMedia(u16),
   DeleteMedia(u16),
@@ -32,10 +32,12 @@ pub enum DashboardPayload<'a> {
   Ready {
     library: &'a [Media],
     clients: &'a [Client],
+    playing: HashSet<u16>,
   },
   ClientCreated(&'a Client),
   ClientConnected(u16),
   ClientDisconnected(&'a HashSet<u16>),
+  ClientDeleted(u16),
   MediaCreated {
     id: u16,
     name: &'a str,

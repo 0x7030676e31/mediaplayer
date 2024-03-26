@@ -174,6 +174,7 @@ impl CleanupLoop for AppState {
 pub struct State {
   pub library: Vec<Media>,
   pub clients: Vec<Client>,
+  pub to_delete: HashSet<u16>,
   next_id: u16,
 
   #[serde(skip)]

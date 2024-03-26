@@ -19,7 +19,7 @@ declare global {
     id: number;
     ip: string;
     hostname: string;
-    username: String,
+    username: string,
     activity: Activity;
   }
 

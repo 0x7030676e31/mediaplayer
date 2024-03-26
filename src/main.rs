@@ -38,6 +38,7 @@ async fn main() -> std::io::Result<()> {
       .service(routes::routes())
       .service(index)
       .service(r#static)
+      .default_service(web::get().to(fallback))
   });
 
   let ip = env::var("IP").unwrap_or(String::from("0.0.0.0"));
@@ -47,16 +48,30 @@ async fn main() -> std::io::Result<()> {
 #[actix_web::get("/")]
 async fn index() -> impl Responder {
   let file = File::open(format!("{}/static/index.html", path())).unwrap();
-  HttpResponse::Ok().streaming(FileStreamer(file))
+  HttpResponse::Ok().content_type("text/html").streaming(FileStreamer(file))
+}
+
+async fn fallback() -> impl Responder {
+  let file = File::open(format!("{}/static/index.html", path())).unwrap();
+  HttpResponse::Ok().content_type("text/html").streaming(FileStreamer(file))
 }
 
 #[actix_web::get("/assets/{asset}")]
 async fn r#static(asset: web::Path<String>) -> Result<impl Responder, actix_web::Error> {
-  let path = format!("{}/static/{}", path(), asset.into_inner());
+  let asset = asset.into_inner();
+  let path = format!("{}/static/{}", path(), asset);
   let file = match File::open(path) {
     Ok(file) => file,
     Err(_) => return Err(error::ErrorNotFound("File not found")),
   };
 
-  Ok(HttpResponse::Ok().streaming(FileStreamer(file)))
+  let content_type = match asset.split('.').last() {
+    Some("css") => "text/css",
+    Some("js") => "text/javascript",
+    Some("png") => "image/png",
+    Some("ico") => "image/x-icon",
+    _ => "text/plain",
+  };
+
+  Ok(HttpResponse::Ok().content_type(content_type).streaming(FileStreamer(file)))
 }

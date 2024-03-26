@@ -31,13 +31,13 @@ async fn download(id: u16, client_id: u16, state: Arc<RwLock<Data>>) -> Result<(
     .send()
     .await;
 
-  let res = req.map_err(|e| eprintln!("Req error: {}", e))?;
+  let res = req.map_err(|_| ())?;
 
   let mut stream = res.bytes_stream();
   let mut writer = File::create(format!("{}\\{}", path(), id)).unwrap();
 
   while let Some(chunk) = stream.next().await {
-    let chunk = chunk.map_err(|e| eprintln!("Chunk error: {}", e))?;
+    let chunk = chunk.map_err(|_| ())?;
     writer.write_all(&chunk).unwrap();
   }
 
@@ -46,7 +46,6 @@ async fn download(id: u16, client_id: u16, state: Arc<RwLock<Data>>) -> Result<(
   state.library.insert(id);
   state.write();
 
-  println!("Downloaded media with id: {}", id);
   Ok(())
 }
 
@@ -98,19 +97,16 @@ async fn play(id: u16, state: Arc<RwLock<Data>>) {
     let sink = Sink::try_new(&stream_handle).unwrap();
     
     let file = File::open(format!("{}\\{}", path(), id)).unwrap();
+    
     sink.append(Decoder::new(BufReader::new(file)).unwrap());
-    println!("Playing media with id: {}", id);
   
     let handle = thread::spawn(move || {
       sink.sleep_until_end();
       let _ = tx.send(());
     });
   
-    if let Err(err) = rx.recv() {
-      eprintln!("Error: {}", err);
-    }
+    let _ = rx.recv();
   
-    println!("Media with id: {} finished playing.", id);
     drop(_output_stream);
     handle.join().unwrap();
   });
@@ -139,8 +135,6 @@ async fn play(id: u16, state: Arc<RwLock<Data>>) {
 
 async fn stop(state: Arc<RwLock<Data>>) {
   let state = state.read().await;
-  println!("Stopping current media.");
-
   state.handle.as_ref().map(|h| h.send(()));
 }
 

@@ -206,7 +206,7 @@ async fn playing_media(req: HttpRequest, state: web::Data<AppState>, id: web::Pa
     };
 
     if let Some(_) = client.playing.take() {
-      let payload = DashboardPayload::MediaStopped(id);
+      let payload = DashboardPayload::MediaStopped(client_id);
       state.broadcast_to_dashboard(payload).await;
       
       log::info!("Client {} stopped playing media {}", client_id, id);
@@ -251,7 +251,7 @@ async fn stopped_media(req: HttpRequest, state: web::Data<AppState>, id: web::Pa
   if let Some((_, handle)) = client.playing.take() {
     handle.abort();
     
-    let payload = DashboardPayload::MediaStopped(*id);
+    let payload = DashboardPayload::MediaStopped(client_id);
     state.broadcast_to_dashboard(payload).await;
     
     log::info!("Client {} stopped playing media {}", client_id, id);

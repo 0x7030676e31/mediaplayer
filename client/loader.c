@@ -1,9 +1,10 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <Windows.h>
+#include <stdbool.h>
 #include <stdio.h>
 
-typedef void (*InitFunc)(void);
+typedef bool (*InitFunc)(void);
 
 static PyObject* _run(PyObject* self, PyObject* args) {
   wchar_t dllPath[MAX_PATH] = { 0 };
@@ -11,7 +12,7 @@ static PyObject* _run(PyObject* self, PyObject* args) {
 
   // Parse arguments passed from Python
   if (!PyArg_ParseTuple(args, "s", &dllPath_)) {
-    return NULL;
+    return Py_None;
   }
 
   // Convert the DLL path to a wide string (char* -> wchar_t)
@@ -21,26 +22,25 @@ static PyObject* _run(PyObject* self, PyObject* args) {
   HMODULE hDll = LoadLibraryW(dllPath);
   if (hDll == NULL) {
     printf("LoadLibraryW failed: %d\n", GetLastError());
-    return NULL;
+    return Py_None;
   }
 
   // Get the address of the DLL's init function
   InitFunc initFunction = (InitFunc)GetProcAddress(hDll, "load");
   if (initFunction == NULL) {
     printf("GetProcAddress failed: %d\n", GetLastError());
-    return NULL;
+    return Py_None;
   }
 
   // Start the DLL
-  initFunction();
+  bool delete = initFunction();
 
   // Clean up
   if (!FreeLibrary(hDll)) {
     printf("FreeLibrary failed: %d\n", GetLastError());
-    return NULL;
   }
 
-  return PyLong_FromLong(0);  
+  return PyBool_FromLong(delete);
 }
 
 static struct PyMethodDef methods[] = {
