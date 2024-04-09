@@ -29,15 +29,11 @@ export default function Library() {
           <div class={styles.header}>
             Name
           </div>
-          <div class={styles.header}>
-            Downloads
-          </div>
-          <div class={styles.header}>
-            Length
-          </div>
-          <div/>
-          <div/>
-          <div/>
+          <div class={styles.header} />
+          <div class={styles.header} />
+          <div class={styles.header} />
+          <div class={styles.header} />
+          <div class={styles.header} />
           <For each={media()}>
             {item => (
               <Entry

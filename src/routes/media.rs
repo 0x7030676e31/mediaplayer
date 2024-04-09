@@ -141,6 +141,7 @@ async fn play_media(state: web::Data<AppState>, id: web::Path<u16>, clients: web
   let futs = state.streams.iter().filter_map(|(tx, client_id)| {
     state.clients.iter()
       .find(|client| client.id == *client_id)
+      .filter(|client| clients.contains(&client.id))
       .map(|client| client.playing.is_none().then(|| tx.send_hinted(payload.clone())))
       .flatten()
   });

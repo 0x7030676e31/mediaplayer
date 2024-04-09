@@ -40,7 +40,7 @@ body {
   animation: rotate 2s linear infinite;
   z-index: 2;
   aspect-ratio: 1 / 1;
-  width: calc(log(2) * 10vmin);
+  width: calc(log(2) * 11vmin);
 
   & .path {
     stroke: $mauve;
@@ -67,5 +67,11 @@ body {
   100% {
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -124;
+  }
+}
+
+@media (max-width: 1000px) {
+  .spinner {
+    width: calc(log(2) * 20vmin);
   }
 }

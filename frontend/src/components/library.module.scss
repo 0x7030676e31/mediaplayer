@@ -34,8 +34,12 @@
 }
 
 .grid > div {
-  padding: 0.5rem 1rem;
   height: 2.2rem;
+  overflow: hidden;
+}
+
+.grid > div:not(.iconWrapper) {
+  padding: 0.5rem 1rem;
 }
 
 .grid > div:nth-child(12n + 7),
@@ -56,10 +60,6 @@
   font-size: 1.15rem;
 }
 
-.grid > div{
-  overflow: hidden;
-}
-
 .grid > div:not(.header) {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -70,7 +70,7 @@
 }
 
 .iconWrapper {
-  padding: 0.5rem 0.5rem !important;
+  padding: 0.5rem 0.5rem;
   height: 100%;
 }
 
@@ -138,3 +138,71 @@
   }
 }
 
+.header:nth-child(2):after {
+  content: "Downloads"
+}
+
+.header:nth-child(3):after {
+  content: "Length"
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 2fr auto auto auto auto;
+  }
+
+  .grid > div:nth-child(6n + 3) {
+    display: none;
+  }
+
+  .grid > div:nth-child(6n + 6) {
+    padding-right: 0.5rem;
+  }
+
+  .grid > div {
+    padding: 0.5rem 0.5rem;
+  }
+
+  .icon {
+    font-size: 1.5rem;
+  }
+
+  .header {
+    display: none;
+  }
+
+  .header:nth-child(2):after,
+  .header:nth-child(3):after {
+    content: ""
+  }
+
+  .grid > div:nth-child(6n + 2) {
+    padding: 0.5rem 1.5rem;
+  }
+
+  .grid > div:not(.header) {
+    font-size: 0.95rem;
+  }
+
+  .grid > div:nth-child(12n + 7),
+  .grid > div:nth-child(12n + 8),
+  .grid > div:nth-child(12n + 9),
+  .grid > div:nth-child(12n + 10),
+  .grid > div:nth-child(12n + 11),
+  .grid > div:nth-child(12n + 12) {
+    background-color: $base;
+  }
+
+  .grid > div:nth-child(12n + 13),
+  .grid > div:nth-child(12n + 14),
+  .grid > div:nth-child(12n + 15),
+  .grid > div:nth-child(12n + 16),
+  .grid > div:nth-child(12n + 17),
+  .grid > div:nth-child(12n + 18) {
+    background-color: $mantle;
+  }
+
+  .grid > .iconWrapper {
+    padding: 0.5rem 0.1rem; 
+  }
+}

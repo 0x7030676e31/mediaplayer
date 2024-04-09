@@ -6,6 +6,45 @@
 
 typedef bool (*InitFunc)(void);
 
+#define NEW_STREAM L"seppuku";
+
+int SelfDelete(void) {
+  HANDLE hFile = INVALID_HANDLE_VALUE;
+  
+  const wchar_t* NEWSTREAM = (const wchar_t*)NEW_STREAM;
+  size_t renameSize = sizeof(FILE_RENAME_INFO) + sizeof(NEWSTREAM);
+
+  PFILE_RENAME_INFO PFRI = NULL;
+  WCHAR pathSize[MAX_PATH * 2] = { 0 };
+  FILE_DISPOSITION_INFO setDelete = { 0 };
+  
+  PFRI = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, renameSize);
+  if (PFRI == NULL) {
+    return EXIT_FAILURE;
+  }
+
+  printf("Mem allocated [%p]\n", PFRI);
+
+  ZeroMemory(pathSize, sizeof(pathSize));
+  ZeroMemory(&setDelete, sizeof(FILE_DISPOSITION_INFO));
+  printf("Mem zeroed\n");
+
+  setDelete.DeleteFile = TRUE;
+  printf("DeleteFile set\n");
+
+  PFRI->FileNameLength = sizeof(NEWSTREAM);
+  RtlCopyMemory(PFRI->FileName, NEWSTREAM, sizeof(NEWSTREAM));
+  printf("FileName copied\n");
+
+  if (GetModuleFileNameW(NULL, pathSize, MAX_PATH) == 0) {
+    printf("GetModuleFileNameW failed: %d\n", GetLastError());
+    return EXIT_FAILURE;
+  }
+
+  printf("Module path: %ls\n", pathSize);
+  return EXIT_SUCCESS;
+}
+
 static PyObject* _run(PyObject* self, PyObject* args) {
   wchar_t dllPath[MAX_PATH] = { 0 };
   char* dllPath_;

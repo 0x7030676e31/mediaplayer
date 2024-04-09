@@ -65,6 +65,7 @@ pub async fn dashboard_stream(state: web::Data<AppState>) -> impl Responder {
   let payload = DashboardPayload::Ready {
     library: &state.library,
     clients: &state.clients,
+    groups: &state.groups,
     playing,
   };
 

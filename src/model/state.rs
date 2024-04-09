@@ -56,6 +56,7 @@ pub struct Client {
   pub hostname: String,
   pub username: String,
   pub activity: Activity,
+  pub alias: Option<String>,
   #[serde(skip)]
   pub playing: Option<(u16, tokio::task::JoinHandle<()>)>,
 }
@@ -74,6 +75,7 @@ impl Client {
       hostname,
       username,
       activity: Activity::Online,
+      alias: None,
       playing: None,
     }
   }
@@ -170,10 +172,30 @@ impl CleanupLoop for AppState {
   }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Group {
+  pub id: u16,
+  pub name: String,
+  pub members: HashSet<u16>,
+  pub color: u32,
+}
+
+impl Group {
+  fn new(id: u16) -> Self {
+    Group {
+      id,
+      name: format!("Group #{}", id),
+      members: HashSet::new(),
+      color: 16106215, // #F5C2E7
+    }
+  }
+}
+
 #[derive(Serialize, Deserialize, Default)]
 pub struct State {
   pub library: Vec<Media>,
   pub clients: Vec<Client>,
+  pub groups: Vec<Group>,
   pub to_delete: HashSet<u16>,
   next_id: u16,
 
@@ -267,6 +289,14 @@ impl State {
     }
   }
 
+  pub fn new_group(&mut self) -> u16 {
+    let id = self.next_id();
+    let group = Group::new(id);
+    self.groups.push(group);
+    self.write();
+    id
+  }
+
   pub async fn broadcast(&self, payload: Payload) {
     let payload = payload.into_bytes();
     let futures = self.streams.iter().map(|(tx, _)| tx.send_hinted(payload.clone()));
@@ -293,7 +323,6 @@ impl State {
     
     future::join_all(futures).await;
   }
-
 
   pub async fn broadcast_to_dashboard_with_nonce<'a>(&mut self, payload: DashboardPayload<'a>, nonce: u64) {
     let payload = payload.into_event(self.next_ack(), Some(nonce));

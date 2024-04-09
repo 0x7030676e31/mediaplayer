@@ -1,11 +1,12 @@
 import { Accessor, For, Setter, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
-import { delete_client, onActivityChange, request_download_selected, start_media, stop_media, useClients, useMedia, usePlaying } from '../stream';
+import { change_alias, delete_client, onActivityChange, request_download_selected, shutdown_client, start_media, stop_media, useClients, useMedia, usePlaying } from '../stream';
 import { AiOutlineCloudSync, AiTwotoneDelete } from "solid-icons/ai";
 import { FaSolidPause } from "solid-icons/fa";
-import { FiPlay } from "solid-icons/fi";
+import { FiPlay, FiPower } from "solid-icons/fi";
 import { IoMusicalNotesOutline } from "solid-icons/io";
-import styles from "./home.module.scss";
+import { VsChromeClose } from "solid-icons/vs";
 import { Portal } from "solid-js/web";
+import styles from "./home.module.scss";
 
 export default function Home() {
   const [ selected, setSelected ] = createSignal<number[]>([]);
@@ -66,7 +67,12 @@ export default function Home() {
       <Portal>
         <div class={styles.modalWrapper} onClick={() => modal() && setModal(false)} classList={{ [styles.hidden]: !modal() }}>        
           <div class={styles.modal} classList={{ [styles.hidden]: !modal() }} onClick={event => event.stopPropagation()}>
-            <h1>Select a media from the library</h1>
+            <div class={styles.modalHeader}>
+              <h1>Select a media from the library</h1>
+              <div class={styles.close} onClick={() => setModal(false)}>
+                <VsChromeClose />
+              </div>
+            </div>
             <div class={styles.list}>
               <For each={media()}>
                 {item => (
@@ -85,9 +91,11 @@ export default function Home() {
         </div>
       </Portal>
       <Show when={clients().length > 0} fallback={<Fallback />}>
-        
         <div class={styles.grid}>
           <div class={styles.header} onClick={e => e.stopPropagation()} />
+          <div class={styles.header} onClick={e => e.stopPropagation()}>
+            Alias
+          </div>
           <div class={styles.header} onClick={e => e.stopPropagation()}>
             Hostname
           </div>
@@ -126,6 +134,7 @@ export default function Home() {
                 username={client.username}
                 ip={client.ip}
                 activity={client.activity.activity}
+                alias={client.alias}
                 selected={selected}
                 setSelected={setSelected}
               />
@@ -204,13 +213,31 @@ type ClientProps = {
   username: string;
   ip: string;
   activity: string;
+  alias: string | null;
   selected: Accessor<number[]>;
   setSelected: Setter<number[]>;
 };
 
 function Client(props: ClientProps) {
-  const [ pending, setPending ] = createSignal(false);
+  const [ dpending, setDPending ] = createSignal(false); // Delete pending
+  const [ spending, setSPending ] = createSignal(false); // Shutdown pending
+  const [ alias, setAlias ] = createSignal<string>(props.alias ?? "");
   const [ playing ] = usePlaying();
+
+  let timeout: number | null = null;
+  function on_input(event: Event) {
+    setAlias((event.target as HTMLInputElement).value);
+    if (timeout !== null) clearTimeout(timeout);
+
+    timeout = setTimeout(() => {
+      change_alias(props.id, alias());
+      timeout = null;
+    }, 500);
+  }
+
+  onCleanup(() => {
+    if (timeout !== null) clearTimeout(timeout);
+  });
 
   function select(event: Event) {
     event.stopPropagation();
@@ -222,16 +249,27 @@ function Client(props: ClientProps) {
 
   function remove(event: Event) {
     event.stopPropagation();
-    if (pending()) return;
+    if (dpending()) return;
 
-    setPending(true);
+    setDPending(true);
     delete_client(props.id);
+  }
+
+  function shutdown(event: Event) {
+    event.stopPropagation();
+    if (spending() || dpending() || props.activity === "Offline") return;
+
+    setSPending(true);
+    shutdown_client(props.id);
   }
 
   return (
     <>
       <div class={styles.iconPlaying} onClick={select} classList={{ [styles.selected]: is_selected(), [styles.hidden]: !playing().includes(props.id) }} style={{ cursor: props.activity === "Offline" ? "default" : "pointer" }}>
         <IoMusicalNotesOutline />
+      </div>
+      <div onClick={select} classList={{ [styles.selected]: is_selected() }} style={{ cursor: props.activity === "Offline" ? "default" : "pointer" }}>
+        <input class={styles.input} type="text" value={alias()} onInput={on_input} placeholder={`N/A (${props.hostname})`} /> 
       </div>
       <div onClick={select} classList={{ [styles.selected]: is_selected() }} style={{ cursor: props.activity === "Offline" ? "default" : "pointer" }}>
         {props.hostname}
@@ -247,11 +285,20 @@ function Client(props: ClientProps) {
           {props.activity}
         </div>
       </div>
-      <div class={styles.iconWrapper} onClick={select} classList={{ [styles.selected]: is_selected() }} style={{ cursor: props.activity === "Offline" ? "default" : "pointer" }} /> 
       <div class={styles.iconWrapper} onClick={select} classList={{ [styles.selected]: is_selected() }} style={{ cursor: props.activity === "Offline" ? "default" : "pointer" }}>
         <div
           class={`${styles.icon} ${styles.delete}`}
-          classList={{ [styles.disabled]: pending() }}
+          classList={{ [styles.disabled]: dpending() || spending() || props.activity === "Offline" }}
+          onClick={shutdown}
+        >
+          <FiPower />
+        </div>
+      </div>
+
+      <div class={styles.iconWrapper} onClick={select} classList={{ [styles.selected]: is_selected() }} style={{ cursor: props.activity === "Offline" ? "default" : "pointer" }}>
+        <div
+          class={`${styles.icon} ${styles.delete}`}
+          classList={{ [styles.disabled]: dpending() }}
           onClick={remove}
         >
           <AiTwotoneDelete />

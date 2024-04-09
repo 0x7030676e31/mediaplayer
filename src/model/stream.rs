@@ -1,4 +1,4 @@
-use crate::model::state::{Media, Client};
+use crate::model::state::{Media, Client, Group};
 
 use std::collections::HashSet;
 use std::task::{Context, Poll};
@@ -23,6 +23,7 @@ pub enum Payload {
   DeleteMedia(u16),
   PlayMedia(u16),
   StopMedia,
+  Shutdown,
   SelfDestruct,
 }
 
@@ -32,12 +33,14 @@ pub enum DashboardPayload<'a> {
   Ready {
     library: &'a [Media],
     clients: &'a [Client],
+    groups: &'a [Group],
     playing: HashSet<u16>,
   },
   ClientCreated(&'a Client),
   ClientConnected(u16),
   ClientDisconnected(&'a HashSet<u16>),
   ClientDeleted(u16),
+  ClientRenamed(u16, Option<String>),
   MediaCreated {
     id: u16,
     name: &'a str,
@@ -53,6 +56,11 @@ pub enum DashboardPayload<'a> {
     client: u16,
   },
   MediaStopped(u16),
+  GroupCreated(u16),
+  GroupEdited(&'a Group),
+  GroupMemberAdded(u16, u16),
+  GroupMemberDeleted(u16, u16),
+  GroupDeleted(u16),
 }
 
 impl Payload {

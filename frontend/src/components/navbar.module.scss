@@ -61,20 +61,56 @@
   aspect-ratio: 1 / 1;
   height: 100%;
   display: flex;
+  box-sizing: border-box;
   justify-content: center;
   align-items: center;
   color: $overlay2;
   transition: color 0.2s ease;
   font-size: 2rem;
   cursor: pointer;
-  display: none;
   padding: 0 0.5rem;
+
+  svg {
+    transition: color 0.2s ease;
+  }
 }
 
-.icon.show {
-  display: flex;
+.icon svg.disabled {
+  color: $overlay0;
 }
 
-.icon:hover {
+.icon:has(.disabled) {
+  cursor: default;
+}
+
+.icon svg:not(.disabled):hover {
   color: $mauve;
+}
+
+.icon svg:not(.disabled):active {
+  color: $subtext1;
+}
+
+@media (max-width: 768px) {
+  .tabs {
+    padding: 0.4rem 0 0 0.4rem;
+  }
+
+  .tab {
+    padding: 0.25rem 0.4rem 0.5rem 0.4rem;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-left: 0.2rem;
+  }
+
+  .icon {
+    font-size: 1.75rem;
+    padding: 0 0.2rem 0 0;
+  }
 }
